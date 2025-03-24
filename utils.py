@@ -10,7 +10,7 @@ import sys
 import read_mist_models
 
 
-
+ # TODO? rajouter ça dans une classe et avoir des méthodes qui peuvent dire dans quelle isochrone un point de donnée est, des plots(?), une meilleur façon de garder les noms des colonnes pour les choisir, etc
 def iso_data_to_panda(file : "str", col_names : "list[str]") -> "pd.DataFrame":
     """
     Read in a MIST isochrone file and return a pandas dataframe with the requested columns.
