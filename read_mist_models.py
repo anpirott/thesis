@@ -291,12 +291,15 @@ class EEP:
         y = self.eeps['log_L']
         
         fig = plt.figure(fignum)
-        plt.xlabel('log(Teff) [K]', fontsize=22)
-        plt.ylabel('log(L/Lsun)', fontsize=22)
+        # plt.xlabel('log(Teff) [K]', fontsize=22)
+        # plt.ylabel('log(L/Lsun)', fontsize=22)
         
         ax = fig.add_subplot(111)
         ax.plot(x, y, **kwargs)
         ax.axis([max(x)+0.2, min(x)-0.2, min(y)-0.2, max(y)+0.2])
+        ax.set_xlabel('log(Teff) [K]', fontsize=22)
+        ax.set_ylabel('log(L/Lsun)', fontsize=22)
+
 
         if len(phases) >= 0:
             if len(phases) != len(phasecolor):
