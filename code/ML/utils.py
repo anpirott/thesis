@@ -35,11 +35,36 @@ import read_mist_models
 
 #     return pd.DataFrame.from_dict(col_dict)
 
-
+# TODO rajouter les exceptions pour les erreurs
 class Iso_data_handler():
     def __init__(self, directory : str, col_names : list[str]):
+        """
+        Initializes the Iso_data_handler class.
+
+        Parameters:
+            directory (str) : complete path to the directory containing the MIST isochrone files
+            col_names (list of str) : names of the columns to be extracted. If set to an empty list, uses all the columns.
+                Possible names are: log10_isochrone_age_yr, initial_mass, star_mass, star_mdot, he_core_mass, c_core_mass, log_L, log_LH, log_LHe, log_Teff, log_R, log_g, surface_h1,
+                                    surface_he3, surface_he4, surface_c12, surface_o16, log_center_T, log_center_Rho, center_gamma, center_h1, center_he4, center_c12, phase
+        """
+
+        if not isinstance(directory, str):
+            print("Error: directory should be initialized as a string.")
+            sys.exit(1)
+        if "\\" in directory:
+            directory = directory.replace("\\", "/")
+        if not directory.endswith("/"):
+            directory += "/"
+        if not os.path.exists(directory):
+            print("Error: directory does not exist.")
+            sys.exit(1)
         self.directory = directory
+
+        if not isinstance(col_names, list):
+            print("Error: col_names should be initialized as a list of strings.")
+            sys.exit(1)
         self.col_names = col_names
+
         self.all_col_names = ["log10_isochrone_age_yr", "initial_mass", "star_mass", "star_mdot", "he_core_mass", "c_core_mass", "log_L", 
                               "log_LH", "log_LHe", "log_Teff", "log_R", "log_g", "surface_h1", "surface_he3", "surface_he4", "surface_c12",
                                 "surface_o16", "log_center_T", "log_center_Rho", "center_gamma", "center_h1", "center_he4", "center_c12", "phase"]
@@ -63,21 +88,24 @@ class Iso_data_handler():
         if directory is None:
             directory = self.directory
         if col_names is None:
-            col_names = self.col_names
-        elif col_names == []:
-            col_names = self.all_col_names
-
+            if len(self.col_names) == 0:
+                col_names = self.all_col_names
+            else:
+                col_names = self.col_names
+        
         if override | (not os.path.exists(directory + "MIST_iso_full_data.csv")):
             # creates a dictionary containing an empty list for each given column 
             col_dict = {key: [] for key in self.all_col_names}
             col_dict["metallicity"] = []
             full_iso_df = pd.DataFrame.from_dict(col_dict)
             
+            # reads all the .iso files in the directory and appends their data to the dataframe
             for filename in os.listdir(directory):
                 if filename.endswith(".iso"):
                     iso_df = Iso_data_handler.iso_data_to_panda(directory + filename, self.all_col_names)
                     full_iso_df = pd.concat([full_iso_df, iso_df], ignore_index=True)
-
+            
+            # saves the dataframe in a csv file
             print("Writing dataframe to csv file...")
             full_iso_df.to_csv(directory + "MIST_iso_full_data.csv", sep=',', encoding='utf-8', index=False, header=True)
 
@@ -120,7 +148,8 @@ class Iso_data_handler():
 
 
 if __name__ == "__main__":
-    test_class = Iso_data_handler("data/MIST_v1.2_vvcrit0.0_basic_isos/", ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase'])
+    test_class = Iso_data_handler("C:/Users/antoi/Code/unif/MA2/Thèse/data/MIST_v1.2_vvcrit0.0_basic_isos/",
+                                  ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase'])
     test_df = test_class.full_iso_data_to_panda(override=False)
     print(test_df)
 
