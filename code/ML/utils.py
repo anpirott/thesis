@@ -178,13 +178,13 @@ class Model_evaluator():
         self.metrics_dict = dict()
         self.plot_dict = dict()
     
+
     # TODO fct qui set tout à faux, fct qui set tout à vrai, fct pour set chaque valeur individuellement
 
-    # TODO? faire une fonction qui calcule les metriques et une qui les print
-    # TODO? return le dict
-    def print_model_metrics(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None):
+
+    def calculate_model_evaluation(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None) -> tuple[dict, dict]:
         """
-        Prints various metrics for the given model predictions.
+        Calculates various metrics and plots for the given model predictions.
 
         Parameters:
             parameter_name (str) : name of the parameter being evaluated
@@ -203,58 +203,25 @@ class Model_evaluator():
             preds = self.preds
 
         self.metrics_dict[parameter_name] = dict() # TODO? p-ê gérer si ça existe déjà
-        
-        print()
-        print(f"{parameter_name} results:")
+
         if self.rve:
             self.metrics_dict[parameter_name]['RVE'] = explained_variance_score(truth, preds)
-            print("Explained variance (RVE): ",explained_variance_score(truth, preds))
         if self.rmse:
             self.metrics_dict[parameter_name]['RMSE'] = root_mean_squared_error(truth, preds)
-            print("Root mean squared error (RMSE): ",root_mean_squared_error(truth, preds))
         if self.mae:
             self.metrics_dict[parameter_name]['MAE'] = mean_absolute_error(truth, preds)
-            print("Mean absolute error (MAE): ",mean_absolute_error(truth, preds))  
         if self.medae:
             self.metrics_dict[parameter_name]['MedAE'] = median_absolute_error(truth, preds)
-            print("Median absolute error (MedAE): ",median_absolute_error(truth, preds))
         if self.corr:
             self.metrics_dict[parameter_name]['CORR'], _ = pearsonr(truth, preds)
-            corr, pval=pearsonr(truth, preds)
-            print("Pearson's correlation coefficient (CORR): ",corr)
         if self.maxe:
             self.metrics_dict[parameter_name]['MAX_ER'] = max_error(truth, preds)
-            print("Maximum error (MAX_ER): ",max_error(truth, preds))
         if isinstance(self.percentile, tuple) and len(self.percentile) > 0:
             self.metrics_dict[parameter_name]['Percentiles'] = dict()
             absolute_residuals = np.abs(truth - preds)
             for p in self.percentile:
                 if p >= 0 and p <= 100:
                     self.metrics_dict[parameter_name]['Percentiles'][p] = np.percentile(absolute_residuals, p)
-                    print(f"{p}th percentile : ", np.percentile(absolute_residuals, p))
-        
-
-    # TODO? faire une fonction qui créé les plots et une qui les montrent
-    # TODO? return le dict
-    def plot_model_metrics(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None, show : bool=True):
-        """
-        Plots various metrics for the given model predictions.
-
-        Parameters:
-            parameter_name (str) : name of the parameter being evaluated
-            truth (numpy.ndarray) : true values
-            preds (numpy.ndarray) : predicted values
-        """
-        if truth is None:
-            if self.truth is None:
-                print("Error: truth values not provided.")
-                sys.exit(1)
-            truth = self.truth
-        if preds is None:
-            if self.preds is None:
-                print("Error: predicted values not provided.")
-                sys.exit(1)
-            preds = self.preds
         
         residuals = truth - preds
         absolute_residuals = np.abs(truth - preds)
@@ -267,15 +234,13 @@ class Model_evaluator():
             # thus the red line represents perfect predictions
             # the further away from the line, the larger the error
             # a point above the line means an overestimation, a point below means an underestimation
-            plotted_predicted_truth = plt.figure(figsize=(6,6))
+            plotted_predicted_truth = plt.figure(figsize=(6,6)) # TODO? faire une fonction de ça?
             plt.scatter(truth, preds, alpha=0.5)
             plt.plot([min(truth), max(truth)], [min(truth), max(truth)], color='red', linestyle='--')
             plt.xlabel('True Values')
             plt.ylabel('Predicted Values')
             plt.title(f'Predicted vs True Values for {parameter_name}')
-            self.plot_dict[parameter_name]['predicted_truth_plot'] = ("predicted_truth_plot", plotted_predicted_truth)
-            if show:
-                plt.show()
+            self.plot_dict[parameter_name]['predicted_truth_plot'] = plotted_predicted_truth
         if self.residuals_truth_plot: # TODO rajouter dans le mémoire si je le garde
             # similaire à celui du dessus, le garde?
             plotted_residuals_truth = plt.figure(figsize=(6,6))
@@ -284,49 +249,82 @@ class Model_evaluator():
             plt.xlabel('True Values')
             plt.ylabel('Residuals')
             plt.title(f'Residuals vs Predicted Values for {parameter_name}')
-            self.plot_dict[parameter_name]['residuals_truth_plot'] = ("residuals_truth_plot", plotted_residuals_truth)
-            if show:
-                plt.show()
+            self.plot_dict[parameter_name]['residuals_truth_plot'] = plotted_residuals_truth
         if self.residuals_boxplot: # TODO rajouter dans le mémoire si je le garde
             plotted_boxplot_no_log = plt.figure(figsize=(6,6))
             sns.boxplot(y=residuals) # without log scale
             plt.ylabel('Residuals')
             plt.title(f'Box Plot of Residuals for {parameter_name}')
-            self.plot_dict[parameter_name]['residuals_boxplot_no_log'] = ("residuals_boxplot_no_log", plotted_boxplot_no_log)
-            if show:
-                plt.show()
+            self.plot_dict[parameter_name]['residuals_boxplot_no_log'] = plotted_boxplot_no_log
         if self.residuals_boxplot: # TODO rajouter dans le mémoire si je le garde
             plotted_boxplot_log = plt.figure(figsize=(6,6))
             sns.boxplot(y=absolute_residuals, log_scale=True) # TODO p-ê une erreur, ou alors juste à cause des valeurs du test
             plt.ylabel('Residuals')
             plt.title(f'Box Plot of Residuals for {parameter_name}')
-            self.plot_dict[parameter_name]['residuals_boxplot_log'] = ("residuals_boxplot_log", plotted_boxplot_log)
-            if show:
-                plt.show()
+            self.plot_dict[parameter_name]['residuals_boxplot_log'] = plotted_boxplot_log
         if self.residuals_histogram: # TODO rajouter dans le mémoire si je le garde
             plotted_histogram = plt.figure(figsize=(6,6))
             plt.hist(residuals, bins=60)
             plt.xlabel('Residuals')
             plt.ylabel('Frequency')
             plt.title(f'Histogram of Residuals for {parameter_name}')
-            self.plot_dict[parameter_name]['residuals_histogram_plot'] = ("residuals_histogram_plot", plotted_histogram)
-            if show:
-                plt.show()
+            self.plot_dict[parameter_name]['residuals_histogram_plot'] = plotted_histogram
         if self.qq_plot: # TODO rajouter dans le mémoire si je le garde
             plotted_qq = plt.figure(figsize=(6,6))
             stats.probplot(residuals, dist="norm", plot=plt)
-            plt.title('Normal Q-Q plot')
             plt.xlabel('Theoretical quantiles')
             plt.ylabel('Ordered Values')
+            plt.title('Normal Q-Q plot')
             plt.grid(True)
-            self.plot_dict[parameter_name]['qq_plot'] = ("qq_plot", plotted_qq)
-            if show:
+            self.plot_dict[parameter_name]['qq_plot'] = plotted_qq
+        
+        return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
+
+
+    # TODO? ajouter une facon d'avoir toutes les metrics d'un coup, pas paramètres par paramètres, pour pouvoir voir en même temps (pas comparer parce que ça sert à rien entre différents paramètres)
+    def show_model_evaluation(self, parameter_name : str=None, metrics_dict : dict=None, plot_dict : dict=None):
+        """
+        Shows various metrics and plots for the given model predictions.
+
+        Parameters:
+            parameter_name (str) : name of the parameter which evaluation needs to be printed. If set to None, prints all parameters
+            metrics_dict (dict) : dictionary containing the metrics to be printed
+            plot_dict (dict) : dictionary containing the plots to be shown
+        """
+        if metrics_dict is None:
+            if self.metrics_dict is None:
+                print("Error: metrics_dict not provided.")
+                sys.exit(1)
+            metrics_dict = self.metrics_dict
+        
+        if plot_dict is None:
+            if self.plot_dict is None:
+                print("Error: plot_dict not provided.")
+                sys.exit(1)
+            plot_dict = self.plot_dict
+        
+        for param in metrics_dict.keys():
+            if parameter_name is not None and param != parameter_name:
+                continue # skip to next parameter
+            print()
+            print(f"{param} results:")
+            for key in metrics_dict[param].keys():
+                if key != "Percentiles":
+                    print(f"{key} : ", metrics_dict[param][key])
+                else:
+                    print("Percentiles : ")
+                    for p in metrics_dict[param][key].keys():
+                        print(f"  {p}th percentile : ", metrics_dict[param][key][p])
+            print()
+
+            for plot_name in plot_dict[param].keys():
                 plt.show()
+                # plot_dict[param][plot_name].show()
     
 
-    def save_model_metrics(self, model_name : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None): # TODO tester le save
+    def save_model_evaluation(self, model_name : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None): # TODO tester le save
         """
-        Saves various metrics for the given model predictions to a CSV file.
+        Saves various metrics and plots for the given model predictions to a CSV file and images in a directory.
 
         Parameters:
             truth (numpy.ndarray) : true values
@@ -371,8 +369,8 @@ class Model_evaluator():
         metrics_df.to_csv(path + f"{self.model_name}/" + "metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
 
         for parameter_name in plot_dict.keys():
-            for plot_name, plot_fig in plot_dict[parameter_name].values():
-                plot_fig.savefig(path + f"{self.model_name}/" + f"{parameter_name}_{plot_name}.png")
+            for plot_name in plot_dict[parameter_name].keys():
+                plot_dict[parameter_name][plot_name].savefig(path + f"{self.model_name}/" + f"{parameter_name}_{plot_name}.png")
 
 
     def evaluate_model(self, model, X_test : np.ndarray, y_test : np.ndarray):
@@ -399,10 +397,10 @@ if __name__ == "__main__":
     test_evaluator = Model_evaluator("test_model", path="C:/Users/antoi/Code/unif/MA2/Thèse/results/K_fold/")
 
     y_true = np.array([3.0, -0.5, 2.0, 7.0])
-    y_pred = np.array([2.5, 0.5, 2.0, 8.0])
+    y_pred = np.array([2.5, -0.5, 2.0, 8.0])
 
-    test_evaluator.print_model_metrics("test_parameter", truth=y_true, preds=y_pred)
-    test_evaluator.plot_model_metrics("test_parameter", truth=y_true, preds=y_pred, show=False)
+    test_evaluator.calculate_model_evaluation("test_parameter", truth=y_true, preds=y_pred)
+    test_evaluator.show_model_evaluation("test_parameter")
 
-    test_evaluator.save_model_metrics()
+    test_evaluator.save_model_evaluation()
 
