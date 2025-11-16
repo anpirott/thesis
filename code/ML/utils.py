@@ -9,8 +9,11 @@ import sys
 import os
 from collections.abc import Callable
 
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error,\
                             root_mean_squared_error, median_absolute_error
+from sklearn.decomposition import PCA
+
 from scipy.stats import pearsonr
 
 import read_mist_models
@@ -129,12 +132,122 @@ class Iso_data_handler():
 
         return iso_df
 
-
+# TODO rajouter les exceptions pour les erreurs
 class Data_preparator():
-    pass
+    @staticmethod
+    def filter_data(data_df : pd.DataFrame, filter_dict : dict) -> pd.DataFrame:
+        """
+        Filters the given dataframe according to the given filter dictionary.
 
+        Parameters:
+            data_df (pandas.DataFrame) : dataframe to be filtered
+            filter_dict (dict) : dictionary containing the filter conditions. The keys are the column names and the values are the filter values.
+                The filter values can either be a list of values or a tuple of size two. If it is a tuple, the first element is the operator ("<", "<=", ">", ">=", "==", "!=") and the second element is the value to compare to.
+                For example, to filter the dataframe to only include rows where the phase is 0, 2, 3, 4 or 5 and a mass smaller than 30, the filter_dict would be:
+                    filter_dict = {"phase": [0, 2, 3, 4, 5], "mass": ("<", 30)}
+        """
+        for key in filter_dict.keys():
+            if isinstance(filter_dict[key], tuple) and len(filter_dict[key]) == 2:
+                operator, value = filter_dict[key]
+                if operator == "<":
+                    data_df = data_df[data_df[key] < value].dropna().reset_index(drop=True)
+                elif operator == "<=":
+                    data_df = data_df[data_df[key] <= value].dropna().reset_index(drop=True)
+                elif operator == ">":
+                    data_df = data_df[data_df[key] > value].dropna().reset_index(drop=True)
+                elif operator == ">=":
+                    data_df = data_df[data_df[key] >= value].dropna().reset_index(drop=True)
+                elif operator == "==":
+                    data_df = data_df[data_df[key] == value].dropna().reset_index(drop=True)
+                elif operator == "!=":
+                    data_df = data_df[data_df[key] != value].dropna().reset_index(drop=True)
+                else:
+                    print(f"Error: invalid operator '{operator}' in filter_dict for key '{key}'.")
+                    sys.exit(1)
+            elif isinstance(filter_dict[key], list):
+                data_df = data_df[data_df[key].isin(filter_dict[key])].dropna().reset_index(drop=True)
+            else:
+                print(f"Error: invalid filter value '{filter_dict[key]}' in filter_dict for key '{key}'.")
+                sys.exit(1)
+        return data_df
+
+    @staticmethod
+    def split_data(data_df : pd.DataFrame, x_cols : list, y_cols : list, test_size : float=0.25, shuffle : bool=True, random_state : int=None) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Splits the given dataframe into training and testing sets.
+
+        Parameters:
+            data_df (pandas.DataFrame) : dataframe to be split
+            x_cols (list) : list of column names to be used as features
+            y_cols (list) : list of column names to be used as targets
+            test_size (float) : proportion of the data to be used as test set
+            shuffle (bool) : whether to shuffle the data before splitting
+            random_state (int) : random seed for shuffling the data
+        """
+        X = data_df[x_cols].to_numpy()
+        y = data_df[y_cols].to_numpy()
+
+        return train_test_split(X, y, test_size=test_size, random_state=random_state, shuffle=shuffle)
+    
+    def show_data_stats(): # TODO? p-ê pas utiles
+        pass
+    
+    @staticmethod
+    def pca_preparation(X_train : np.ndarray, X_ivs : np.ndarray, verbose : bool=False) -> tuple[np.ndarray, np.ndarray]:
+        pca = PCA(n_components=4) # maybe try with less or more components
+        pca.fit(X_train)
+        X_train_pca = pca.transform(X_train)
+        X_ivs_pca = pca.transform(X_ivs)
+
+        if verbose:
+            tve=0
+            for i, ve in enumerate(pca.explained_variance_ratio_):
+                tve+=ve
+                print("PC%d - Variance explained: %7.4f - Total Variance: %7.4f" % (i, ve, tve))
+            print()
+            print(X_train_pca.shape)
+
+        return X_train_pca, X_ivs_pca
+
+# TODO rajouter les exceptions pour les erreurs
 class Model_trainer():
-    pass
+    @staticmethod
+    def Kfold_pipeline(model, x_train_data=X_train, y_train_data=y_train, filename="", n_splits=10, shuffle=True):
+        kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=120)
+        TRUTH_MASS=None
+        TRUTH_RADIUS=None
+        PREDS_MASS=None
+        PREDS_RADIUS=None
+        counter = 0
+        print("split", end=' ')
+        for train_index, test_index in kf.split(x_train_data):
+            counter += 1
+            print(str(counter), end=' ')
+            X_train, X_test = x_train_data[train_index], x_train_data[test_index]
+            y_train, y_test = y_train_data[train_index], y_train_data[test_index]
+
+            mdl = model()
+            mdl.fit(X_train, y_train)
+            preds = mdl.predict(X_test)
+
+            if TRUTH_MASS is None:
+                PREDS_MASS=preds[:, 0]
+                TRUTH_MASS=y_test[:, 0]
+            else:
+                PREDS_MASS=np.hstack((PREDS_MASS, preds[:, 0]))
+                TRUTH_MASS=np.hstack((TRUTH_MASS, y_test[:, 0]))
+
+            if TRUTH_RADIUS is None:
+                PREDS_RADIUS=preds[:, 1]
+                TRUTH_RADIUS=y_test[:, 1]
+            else:
+                PREDS_RADIUS=np.hstack((PREDS_RADIUS, preds[:, 1]))
+                TRUTH_RADIUS=np.hstack((TRUTH_RADIUS, y_test[:, 1]))
+
+        # print_model_metrics(TRUTH_MASS, PREDS_MASS, "Mass")
+
+        # print_model_metrics(TRUTH_RADIUS, PREDS_RADIUS, "Radius")
+        return TRUTH_MASS, PREDS_MASS, TRUTH_RADIUS, PREDS_RADIUS
 
 
 # TODO rajouter les exceptions pour les erreurs
