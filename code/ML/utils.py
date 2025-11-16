@@ -134,6 +134,14 @@ class Iso_data_handler():
 
 # TODO rajouter les exceptions pour les erreurs
 class Data_preparator():
+    """
+    Class which contains methods for preparing data for machine learning models.
+
+    Methods:
+        filter_data : filters the given dataframe according to the given filter dictionary
+        split_data : splits the given dataframe into training and testing sets
+        pca_preparation : applies PCA to the given training and IVS data
+    """
     @staticmethod
     def filter_data(data_df : pd.DataFrame, filter_dict : dict) -> pd.DataFrame:
         """
@@ -145,6 +153,9 @@ class Data_preparator():
                 The filter values can either be a list of values or a tuple of size two. If it is a tuple, the first element is the operator ("<", "<=", ">", ">=", "==", "!=") and the second element is the value to compare to.
                 For example, to filter the dataframe to only include rows where the phase is 0, 2, 3, 4 or 5 and a mass smaller than 30, the filter_dict would be:
                     filter_dict = {"phase": [0, 2, 3, 4, 5], "mass": ("<", 30)}
+        
+        Returns:
+            pandas.DataFrame : a pandas dataframe containing the filtered data
         """
         for key in filter_dict.keys():
             if isinstance(filter_dict[key], tuple) and len(filter_dict[key]) == 2:
@@ -183,6 +194,9 @@ class Data_preparator():
             test_size (float) : proportion of the data to be used as test set
             shuffle (bool) : whether to shuffle the data before splitting
             random_state (int) : random seed for shuffling the data
+        
+        Returns:
+            tuple of four numpy.ndarrays : the training features (X_train), testing features (X_test), training targets (y_train) and testing targets (y_test)
         """
         X = data_df[x_cols].to_numpy()
         y = data_df[y_cols].to_numpy()
@@ -193,11 +207,22 @@ class Data_preparator():
         pass
     
     @staticmethod
-    def pca_preparation(X_train : np.ndarray, X_ivs : np.ndarray, verbose : bool=False) -> tuple[np.ndarray, np.ndarray]:
+    def pca_preparation(X_train : np.ndarray, X_test : np.ndarray, verbose : bool=False) -> tuple[np.ndarray, np.ndarray]:
+        """
+        applies PCA to the given training and test data.
+
+        Parameters:
+            X_train (numpy.ndarray) : training data
+            X_test (numpy.ndarray) : test data
+            verbose (bool) : whether to print the explained variance ratio of each principal component and the shape of the transformed data
+        
+        Returns:
+            tuple of two numpy.ndarrays : the transformed training and test data
+        """
         pca = PCA(n_components=4) # maybe try with less or more components
         pca.fit(X_train)
         X_train_pca = pca.transform(X_train)
-        X_ivs_pca = pca.transform(X_ivs)
+        X_ivs_pca = pca.transform(X_test)
 
         if verbose:
             tve=0
@@ -211,13 +236,37 @@ class Data_preparator():
 
 # TODO rajouter les exceptions pour les erreurs
 class Model_trainer():
+    """
+    Class which contains methods for training machine learning models.
+
+    Methods:
+        Kfold_pipeline : performs K-fold cross-validation on the given model and training data
+    """
+    # TODO faire que la fonction puisse accepter autant d'output qu'on veut
+    # TODO mettre les outputs (preds) du modèle dans un fichier csv pour utiliser plus tard
+    # TODO mettre la possibilité de rajouter des paramètres à tester dans le modèle
+    # TODO rajouter le calcul du temps et le rajouter dans le csv
     @staticmethod
-    def Kfold_pipeline(model, x_train_data=X_train, y_train_data=y_train, filename="", n_splits=10, shuffle=True):
-        kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=120)
-        TRUTH_MASS=None
-        TRUTH_RADIUS=None
-        PREDS_MASS=None
-        PREDS_RADIUS=None
+    def Kfold_pipeline(model : Callable, x_train_data : np.ndarray, y_train_data : np.ndarray, n_splits : int=10, 
+                       shuffle : bool=True, random_state : int=120) -> tuple[list, list]:
+        """
+        Performs K-fold cross-validation on the given model and training data.
+
+        Parameters:
+            model (Callable) : machine learning model to be trained
+            x_train_data (numpy.ndarray) : training features
+            y_train_data (numpy.ndarray) : training targets
+            n_splits (int) : number of folds for cross-validation
+            shuffle (bool) : whether to shuffle the data before splitting into folds
+            random_state (int) : random seed for shuffling the data
+        
+        Returns:
+            tuple of two lists : a tuple containing the true values for each target across all folds and a tuple containing the predicted values for each target across all folds
+        """
+        truth = list(None for _ in range(y_train_data.shape[1]))
+        preds = list(None for _ in range(y_train_data.shape[1]))
+
+        kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
         counter = 0
         print("split", end=' ')
         for train_index, test_index in kf.split(x_train_data):
@@ -228,26 +277,17 @@ class Model_trainer():
 
             mdl = model()
             mdl.fit(X_train, y_train)
-            preds = mdl.predict(X_test)
+            fold_preds = mdl.predict(X_test)
 
-            if TRUTH_MASS is None:
-                PREDS_MASS=preds[:, 0]
-                TRUTH_MASS=y_test[:, 0]
-            else:
-                PREDS_MASS=np.hstack((PREDS_MASS, preds[:, 0]))
-                TRUTH_MASS=np.hstack((TRUTH_MASS, y_test[:, 0]))
-
-            if TRUTH_RADIUS is None:
-                PREDS_RADIUS=preds[:, 1]
-                TRUTH_RADIUS=y_test[:, 1]
-            else:
-                PREDS_RADIUS=np.hstack((PREDS_RADIUS, preds[:, 1]))
-                TRUTH_RADIUS=np.hstack((TRUTH_RADIUS, y_test[:, 1]))
-
-        # print_model_metrics(TRUTH_MASS, PREDS_MASS, "Mass")
-
-        # print_model_metrics(TRUTH_RADIUS, PREDS_RADIUS, "Radius")
-        return TRUTH_MASS, PREDS_MASS, TRUTH_RADIUS, PREDS_RADIUS
+            for i in range(y_train_data.shape[1]):
+                if truth[i] is None:
+                    truth[i] = y_test[:, i]
+                    preds[i] = fold_preds[:, i]
+                else:
+                    truth[i] = np.hstack((truth[i], y_test[:, i]))
+                    preds[i] = np.hstack((preds[i], fold_preds[:, i]))
+        
+        return truth, preds
 
 
 # TODO rajouter les exceptions pour les erreurs
