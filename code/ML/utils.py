@@ -7,6 +7,7 @@ import seaborn as sns
 import copy
 import sys
 import os
+from collections.abc import Callable
 
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error,\
                             root_mean_squared_error, median_absolute_error
@@ -129,8 +130,25 @@ class Iso_data_handler():
         return iso_df
 
 
+class Data_preparator():
+    pass
+
+class Model_trainer():
+    pass
+
+
 # TODO rajouter les exceptions pour les erreurs
 class Model_evaluator():
+    """
+    Class for evaluating machine learning models by calculating various metrics and generating plots.
+
+    Methods:
+        __init__ : initializes the Model_evaluator class
+        set_metrics_values : sets the metrics to be computed/plots to be generated
+        calculate_model_evaluation : calculates various metrics and plots for the given model predictions
+        show_model_evaluation : shows various metrics and plots for the given model predictions
+        save_model_evaluation : saves various metrics and plots for the given model predictions to a CSV file and images in a directory
+    """
     def __init__(self, model_name : str, model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, 
                  rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
                  predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, qq_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
@@ -178,9 +196,54 @@ class Model_evaluator():
         self.metrics_dict = dict()
         self.plot_dict = dict()
     
+    def set_metrics_values(self, all=True, rve=None, rmse=None, mae=None, medae=None, corr=None, maxe=None, percentile=None,
+                    predicted_truth_plot=None, residuals_truth_plot=None, residuals_boxplot=None, residuals_histogram=None, qq_plot=None):
+        """
+        Sets the metrics to be computed/plots to be generated.
 
-    # TODO fct qui set tout à faux, fct qui set tout à vrai, fct pour set chaque valeur individuellement
-
+        Parameters:
+            all (bool) : if set to True, sets all metrics/plots to True
+            every other parameter (bool or list of int) : if not set to None, sets the corresponding metric/plot to the given value
+        """
+        if all:
+            self.rve = True
+            self.rmse = True
+            self.mae = True
+            self.medae = True
+            self.corr = True
+            self.maxe = True
+            self.percentile = (75, 90, 95, 99)
+            self.predicted_truth_plot = True
+            self.residuals_truth_plot = True
+            self.residuals_boxplot = True
+            self.residuals_histogram = True
+            self.qq_plot = True
+            return
+        
+        if rve is not None:
+            self.rve = rve
+        if rmse is not None:
+            self.rmse = rmse
+        if mae is not None:
+            self.mae = mae
+        if medae is not None:
+            self.medae = medae
+        if corr is not None:
+            self.corr = corr
+        if maxe is not None:
+            self.maxe = maxe
+        if percentile is not None:
+            self.percentile = percentile
+        if predicted_truth_plot is not None:
+            self.predicted_truth_plot = predicted_truth_plot
+        if residuals_truth_plot is not None:
+            self.residuals_truth_plot = residuals_truth_plot
+        if residuals_boxplot is not None:
+            self.residuals_boxplot = residuals_boxplot
+        if residuals_histogram is not None:
+            self.residuals_histogram = residuals_histogram
+        if qq_plot is not None:
+            self.qq_plot = qq_plot
 
     def calculate_model_evaluation(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None) -> tuple[dict, dict]:
         """
@@ -190,6 +253,9 @@ class Model_evaluator():
             parameter_name (str) : name of the parameter being evaluated
             truth (numpy.ndarray) : true values
             preds (numpy.ndarray) : predicted values
+        
+        Returns:
+            tuple of two dicts : a dictionary containing the calculated metrics and a dictionary containing the generated plots
         """
         if truth is None:
             if self.truth is None:
@@ -234,17 +300,22 @@ class Model_evaluator():
             # thus the red line represents perfect predictions
             # the further away from the line, the larger the error
             # a point above the line means an overestimation, a point below means an underestimation
-            plotted_predicted_truth = plt.figure(figsize=(6,6)) # TODO? faire une fonction de ça?
-            plt.scatter(truth, preds, alpha=0.5)
+
+            plotted_predicted_truth = plt.figure(figsize=(6,6))
+            plt.scatter(truth, preds, alpha=0.01)
             plt.plot([min(truth), max(truth)], [min(truth), max(truth)], color='red', linestyle='--')
             plt.xlabel('True Values')
             plt.ylabel('Predicted Values')
             plt.title(f'Predicted vs True Values for {parameter_name}')
             self.plot_dict[parameter_name]['predicted_truth_plot'] = plotted_predicted_truth
+
+            # self.plot_dict[parameter_name]['predicted_truth_plot'] = \
+            #     self._test(xlabel='True Values', ylabel='Predicted Values', title=f'Predicted vs True Values for {parameter_name}', grid=False,
+            #                funcs=[plt.scatter(truth, preds, alpha=0.5), plt.plot([min(truth), max(truth)], [min(truth), max(truth)], color='red', linestyle='--')])
         if self.residuals_truth_plot: # TODO rajouter dans le mémoire si je le garde
             # similaire à celui du dessus, le garde?
             plotted_residuals_truth = plt.figure(figsize=(6,6))
-            plt.scatter(truth, residuals, alpha=0.5)
+            plt.scatter(truth, residuals, alpha=0.01)
             plt.axhline(0, color='red', linestyle='--')
             plt.xlabel('True Values')
             plt.ylabel('Residuals')
@@ -280,6 +351,16 @@ class Model_evaluator():
         
         return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
 
+
+    # def _test_fonctionne_pas(self, xlabel : str, ylabel : str, title : str, grid : bool, funcs : list[Callable]) -> plt.Figure:
+    #     plot = plt.figure(figsize=(6,6))
+    #     for func in funcs:
+    #         func
+    #     plt.xlabel(xlabel)
+    #     plt.ylabel(ylabel)
+    #     plt.title(title)
+    #     plt.grid(grid)
+    #     return plot
 
     # TODO? ajouter une facon d'avoir toutes les metrics d'un coup, pas paramètres par paramètres, pour pouvoir voir en même temps (pas comparer parce que ça sert à rien entre différents paramètres)
     def show_model_evaluation(self, parameter_name : str=None, metrics_dict : dict=None, plot_dict : dict=None):
@@ -321,7 +402,6 @@ class Model_evaluator():
                 plt.show()
                 # plot_dict[param][plot_name].show()
     
-
     def save_model_evaluation(self, model_name : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None): # TODO tester le save
         """
         Saves various metrics and plots for the given model predictions to a CSV file and images in a directory.
@@ -366,13 +446,15 @@ class Model_evaluator():
             plot_dict = self.plot_dict
         
         metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index')
-        metrics_df.to_csv(path + f"{self.model_name}/" + "metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
+        if not os.path.exists(path + f"{self.model_name}/"):
+            os.makedirs(path + f"{self.model_name}/")
+        metrics_df.to_csv(path + f"{self.model_name}/" + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
 
         for parameter_name in plot_dict.keys():
             for plot_name in plot_dict[parameter_name].keys():
                 plot_dict[parameter_name][plot_name].savefig(path + f"{self.model_name}/" + f"{parameter_name}_{plot_name}.png")
 
-
+    # TODO! ne fonctionne pas
     def evaluate_model(self, model, X_test : np.ndarray, y_test : np.ndarray):
         """
         Evaluates the given model on the test data and prints the metrics.
@@ -384,7 +466,23 @@ class Model_evaluator():
         """
         y_pred = model.predict(X_test)
         for i, col in enumerate(y_test.columns):
-            self.print_model_metrics(y_test[col].values, y_pred[:, i], col)
+            self.calculate_model_evaluation(col, y_test[col].values, y_pred[:, i])
+            self.show_model_evaluation(col)
+            # self.print_model_metrics(y_test[col].values, y_pred[:, i], col)
+    
+    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, save : bool=True):
+        """
+        Evaluates the given predictions and prints the metrics.
+
+        Parameters:
+            y_true (np.ndarray) : true values
+            y_pred (np.ndarray) : predicted values
+        """
+        self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds)
+        self.show_model_evaluation(parameter_name)
+
+        if save:
+            self.save_model_evaluation()
 
 
 
@@ -394,7 +492,8 @@ if __name__ == "__main__":
     # test_df = test_class.full_iso_data_to_panda(override=False)
     # print(test_df)
     # initialize data of lists.
-    test_evaluator = Model_evaluator("test_model", path="C:/Users/antoi/Code/unif/MA2/Thèse/results/K_fold/")
+    test_evaluator = Model_evaluator("test_model", path="C:/Users/antoi/Code/unif/MA2/Thèse/results/K_fold/", residuals_truth_plot=False, residuals_boxplot=False,
+                                     residuals_histogram=False,qq_plot=False)
 
     y_true = np.array([3.0, -0.5, 2.0, 7.0])
     y_pred = np.array([2.5, -0.5, 2.0, 8.0])
