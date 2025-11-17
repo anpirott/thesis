@@ -7,7 +7,9 @@ import seaborn as sns
 import copy
 import sys
 import os
+import csv
 from collections.abc import Callable
+from IPython.display import Image
 
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error,\
@@ -242,19 +244,21 @@ class Model_trainer():
     Methods:
         Kfold_pipeline : performs K-fold cross-validation on the given model and training data
     """
-    # TODO faire que la fonction puisse accepter autant d'output qu'on veut
-    # TODO mettre les outputs (preds) du modèle dans un fichier csv pour utiliser plus tard
+    def __init__(self):
+        pass
+
+    # mettre les outputs (preds) du modèle dans un fichier csv pour utiliser plus tard, mis en pause parce que ça prend pas mal de place
     # TODO mettre la possibilité de rajouter des paramètres à tester dans le modèle
     # TODO rajouter le calcul du temps et le rajouter dans le csv
     @staticmethod
-    def Kfold_pipeline(model : Callable, x_train_data : np.ndarray, y_train_data : np.ndarray, n_splits : int=10, 
+    def Kfold_pipeline(model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, n_splits : int=10, 
                        shuffle : bool=True, random_state : int=120) -> tuple[list, list]:
         """
         Performs K-fold cross-validation on the given model and training data.
 
         Parameters:
             model (Callable) : machine learning model to be trained
-            x_train_data (numpy.ndarray) : training features
+            X_train_data (numpy.ndarray) : training features
             y_train_data (numpy.ndarray) : training targets
             n_splits (int) : number of folds for cross-validation
             shuffle (bool) : whether to shuffle the data before splitting into folds
@@ -269,10 +273,10 @@ class Model_trainer():
         kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
         counter = 0
         print("split", end=' ')
-        for train_index, test_index in kf.split(x_train_data):
+        for train_index, test_index in kf.split(X_train_data):
             counter += 1
             print(str(counter), end=' ')
-            X_train, X_test = x_train_data[train_index], x_train_data[test_index]
+            X_train, X_test = X_train_data[train_index], X_train_data[test_index]
             y_train, y_test = y_train_data[train_index], y_train_data[test_index]
 
             mdl = model()
@@ -288,6 +292,10 @@ class Model_trainer():
                     preds[i] = np.hstack((preds[i], fold_preds[:, i]))
         
         return truth, preds
+
+    # TODO quand je devrai train des modèles tous seuls avec paramètres
+    def train_model():
+        pass
 
 
 # TODO rajouter les exceptions pour les erreurs
@@ -320,18 +328,7 @@ class Model_evaluator():
         self.model = model
         self.truth = truth
         self.preds = preds
-        # path sanitization 
-        if not isinstance(path, str):
-            print("Error: path should be initialized as a string.")
-            sys.exit(1)
-        if "\\" in path:
-            path = path.replace("\\", "/")
-        if not path.endswith("/"):
-            path += "/"
-        if not os.path.exists(path):
-            print("Error: path does not exist.")
-            sys.exit(1)
-        self.path = path
+        self.path = self._sanitize_path(path)
 
         self.rve = rve
         self.rmse = rmse
@@ -398,6 +395,29 @@ class Model_evaluator():
         if qq_plot is not None:
             self.qq_plot = qq_plot
 
+    def _sanitize_path(self, path : str) -> str:
+        """
+        Sanitizes the given path.
+
+        Parameters:
+            path (str) : path to be sanitized
+        
+        Returns:
+            str : sanitized path
+        """
+        if not isinstance(path, str):
+            print("Error: path should be initialized as a string.")
+            sys.exit(1)
+        if "\\" in path:
+            path = path.replace("\\", "/")
+        if not path.endswith("/"):
+            path += "/"
+        if not os.path.exists(path):
+            print("Error: path does not exist.")
+            sys.exit(1)
+        return path
+    
+    # TODO décrire tous les plots
     def calculate_model_evaluation(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None) -> tuple[dict, dict]:
         """
         Calculates various metrics and plots for the given model predictions.
@@ -504,7 +524,6 @@ class Model_evaluator():
         
         return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
 
-
     # def _test_fonctionne_pas(self, xlabel : str, ylabel : str, title : str, grid : bool, funcs : list[Callable]) -> plt.Figure:
     #     plot = plt.figure(figsize=(6,6))
     #     for func in funcs:
@@ -555,14 +574,16 @@ class Model_evaluator():
                 plt.show()
                 # plot_dict[param][plot_name].show()
     
-    def save_model_evaluation(self, model_name : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None): # TODO tester le save
+    def save_model_evaluation(self,  tag : str, model_name : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None): # TODO tester le save
         """
         Saves various metrics and plots for the given model predictions to a CSV file and images in a directory.
 
         Parameters:
-            truth (numpy.ndarray) : true values
-            preds (numpy.ndarray) : predicted values
+            tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
+            model_name (str) : name of the model being evaluated. If set to None, uses the name provided during initialization
             path (str) : the path to the directory in which the metrics will be saved. If set to None, uses the path provided during initialization
+            metrics_dict (dict) : dictionary containing the metrics to be saved
+            plot_dict (dict) : dictionary containing the plots to be saved
         """
         if model_name is None:
             if self.model_name is None:
@@ -574,18 +595,8 @@ class Model_evaluator():
                 print("Error: path not provided.")
                 sys.exit(1)
             path = self.path
-        # path sanitization 
-        if not isinstance(path, str):
-            print("Error: path should be initialized as a string.")
-            sys.exit(1)
-        if "\\" in path:
-            path = path.replace("\\", "/")
-        if not path.endswith("/"):
-            path += "/"
-        if not os.path.exists(path):
-            print("Error: path does not exist.")
-            sys.exit(1)
-        self.path = path
+        else:
+            path = self._sanitize_path(path)
 
         if metrics_dict is None:
             if self.metrics_dict is None:
@@ -599,13 +610,13 @@ class Model_evaluator():
             plot_dict = self.plot_dict
         
         metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index')
-        if not os.path.exists(path + f"{self.model_name}/"):
-            os.makedirs(path + f"{self.model_name}/")
-        metrics_df.to_csv(path + f"{self.model_name}/" + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
+        if not os.path.exists(path + f"{model_name}/{tag}/"):
+            os.makedirs(path + f"{model_name}/{tag}/")
+        metrics_df.to_csv(path + f"{model_name}/{tag}/" + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
 
         for parameter_name in plot_dict.keys():
             for plot_name in plot_dict[parameter_name].keys():
-                plot_dict[parameter_name][plot_name].savefig(path + f"{self.model_name}/" + f"{parameter_name}_{plot_name}.png")
+                plot_dict[parameter_name][plot_name].savefig(path + f"{self.model_name}/{tag}/" + f"{parameter_name}_{plot_name}.png")
 
     # TODO! ne fonctionne pas
     def evaluate_model(self, model, X_test : np.ndarray, y_test : np.ndarray):
@@ -623,19 +634,152 @@ class Model_evaluator():
             self.show_model_evaluation(col)
             # self.print_model_metrics(y_test[col].values, y_pred[:, i], col)
     
-    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, save : bool=True):
+    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, tag : str, save : bool=True):
         """
         Evaluates the given predictions and prints the metrics.
 
         Parameters:
-            y_true (np.ndarray) : true values
-            y_pred (np.ndarray) : predicted values
+            truth (np.ndarray) : true values
+            pred (np.ndarray) : predicted values
+            parameter_name (str) : name of the parameter being evaluated
+            tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
+            save (bool) : whether to save the metrics and plots
         """
         self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds)
         self.show_model_evaluation(parameter_name)
 
         if save:
-            self.save_model_evaluation()
+            self.save_model_evaluation(tag=tag)
+    
+    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, override : bool=False):
+        """
+        Generates K-fold cross-validation results for the given model and training data.
+
+        Parameters:
+            model (Callable) : machine learning model to be trained
+            X_train_data (numpy.ndarray) : training features
+            y_train_data (numpy.ndarray) : training targets
+            tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
+            override (bool) : whether to override existing results or use the existing ones
+        """
+        print(f"\n{tag} train data :")
+        if override or not self.check_existing_results(tag):
+            truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data)
+            # self.save_predictions(preds, path, f"{tag}_predictions.npy") # pas fait parce que ça prend pas mal de place (50 mo pour un fichier)
+            self.evaluate_predictions(truth[0], preds[0], "mass", tag) # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)
+            self.evaluate_predictions(truth[1], preds[1], "radius", tag) # TODO? rajouter une liste des parameter_name à la classe?
+        else:
+            self.show_existing_results(tag)
+    
+    def check_existing_results(self, tag : str, model_name : str=None, path : str=None) -> bool:
+        """
+        Checks if the results for the given tag already exist.
+
+        Parameters:
+            tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
+        
+        Returns:
+            bool : True if the results already exist, False otherwise
+        """
+        if model_name is None:
+            if self.model_name is None:
+                print("Error: model_name not provided.")
+                sys.exit(1)
+            model_name = self.model_name
+        if path is None:
+            if self.path is None:
+                print("Error: path not provided.")
+                sys.exit(1)
+            path = self.path
+        else:
+            path = self._sanitize_path(path)
+        if os.path.exists(path + f"{model_name}/{tag}/metrics.csv"):
+            return True
+        return False
+    
+    def show_existing_results(self, tag : str, model_name : str=None, path : str=None):
+        """
+        Loads the existing results for the given tag.
+
+        Parameters:
+            tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
+            model_name (str) : name of the model being evaluated. If set to None, uses the name provided during initialization
+            path (str) : the path to the directory in which the metrics are saved. If set to None, uses the path provided during initialization
+        """
+        if model_name is None:
+            if self.model_name is None:
+                print("Error: model_name not provided.")
+                sys.exit(1)
+            model_name = self.model_name
+        if path is None:
+            if self.path is None:
+                print("Error: path not provided.")
+                sys.exit(1)
+            path = self.path
+        else:
+            path = self._sanitize_path(path)
+        full_path = path + f"{model_name}/{tag}/"
+
+        for filename in os.listdir(full_path):
+            if filename.endswith(".csv"):
+                with open(full_path + filename, 'r') as file:
+                    results = csv.DictReader(file)
+                    for line_dict in results:
+                        print(f"{line_dict['']} results:")
+                        for key in line_dict.keys():
+                            if key == "":
+                                continue
+                            if key != "Percentiles":
+                                print(f"{key} : ", line_dict[key])
+                            elif key == "Percentiles":
+                                print("Percentiles : ")
+                                percentiles_dict = eval(line_dict[key])
+                                for p in percentiles_dict.keys():
+                                    print(f"  {p}th percentile : ", percentiles_dict[p])
+                        print()
+
+            elif filename.endswith(".png"):
+                display(Image(filename=full_path + filename)) # TODO ne fonctionne p-ê que dans un notebook
+                    
+    def save_predictions(self, preds : np.ndarray, path : str, filename : str, model_name : str=None):
+        """
+        Saves the given predictions to a .npy file.
+
+        Parameters:
+            preds (np.ndarray) : predicted values
+            path (str) : path to the directory in which the predictions will be saved
+            filename (str) : name of the file in which the predictions will be saved
+        """
+        if model_name is None:
+            if self.model_name is None:
+                print("Error: model_name not provided.")
+                sys.exit(1)
+            model_name = self.model_name
+        path = self._sanitize_path(path)
+        full_path = path + model_name + "/"
+        print(full_path)
+        if not os.path.exists(full_path):
+            os.makedirs(full_path)
+        np.savetxt(full_path + filename, preds)
+    
+    def load_predictions(self, path : str, filename : str, model_name : str=None) -> np.ndarray: # TODO à tester
+        """
+        Loads the predictions from a .npy file.
+
+        Parameters:
+            path (str) : path to the directory in which the predictions are saved
+            filename (str) : name of the file in which the predictions are saved
+            model_name (str) : name of the model whose predictions are to be loaded
+        """
+        if model_name is None:
+            if self.model_name is None:
+                print("Error: model_name not provided.")
+                sys.exit(1)
+            model_name = self.model_name
+        path = self._sanitize_path(path)
+        
+        return np.load(path + model_name + filename)
+    
 
 
 
