@@ -2,7 +2,7 @@ import pandas as pd
 import sys
 import os
 
-import read_mist_models
+import physics.read_mist_models as read_mist_models
 
 from utils.utils import sanitize_path
 
@@ -108,3 +108,12 @@ class Iso_data_handler():
         iso_df["metallicity"] = metallicity
 
         return iso_df
+
+
+if __name__ == "__main__":
+    pass
+    # test_class = Iso_data_handler("C:/Users/antoi/Code/unif/MA2/Thèse/data/MIST_v1.2_vvcrit0.0_basic_isos/",
+    #                               ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase'])
+    # test_df = test_class.full_iso_data_to_panda(override=False)
+    # print(test_df)
+    # initialize data of lists.

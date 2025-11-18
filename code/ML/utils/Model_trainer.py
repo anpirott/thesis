@@ -61,3 +61,13 @@ class Model_trainer():
     # TODO quand je devrai train des modèles tous seuls avec paramètres
     def train_model():
         pass
+
+if __name__ == "__main__":
+    pass
+
+    # def test(a, b):
+    #     print(a+b)
+    
+    # params = ["a=1", "b=2"]
+
+    # test(eval(params[0]), eval(params[1]))

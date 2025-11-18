@@ -479,3 +479,17 @@ class Model_evaluator():
         path = sanitize_path(path)
         
         return np.load(path + model_name + filename)
+
+
+if __name__ == "__main__":
+    pass
+    # test_evaluator = Model_evaluator("test_model", path="C:/Users/antoi/Code/unif/MA2/Thèse/results/K_fold/", residuals_truth_plot=False, residuals_boxplot=False,
+    #                                  residuals_histogram=False,qq_plot=False)
+
+    # y_true = np.array([3.0, -0.5, 2.0, 7.0])
+    # y_pred = np.array([2.5, -0.5, 2.0, 8.0])
+
+    # test_evaluator.calculate_model_evaluation("test_parameter", truth=y_true, preds=y_pred)
+    # test_evaluator.show_model_evaluation("test_parameter")
+
+    # test_evaluator.save_model_evaluation()
