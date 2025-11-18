@@ -11,7 +11,7 @@ import pickle
 import joblib
 import sys
 
-from utils import Iso_data_handler
+from utils.Iso_data_handler import Iso_data_handler
 
 
 def first_method(age, metallicity, log_Teff, log_g, q, primary_mdl_path="model/primary_XGB.pkl", secondary_mdl_path="model/secondary_XGB.pkl"):
