@@ -244,12 +244,9 @@ class Model_trainer():
     Methods:
         Kfold_pipeline : performs K-fold cross-validation on the given model and training data
     """
-    def __init__(self):
-        pass
-
     # mettre les outputs (preds) du modèle dans un fichier csv pour utiliser plus tard, mis en pause parce que ça prend pas mal de place
     # TODO mettre la possibilité de rajouter des paramètres à tester dans le modèle
-    # TODO rajouter le calcul du temps et le rajouter dans le csv
+    # TODO? rajouter le calcul du temps et le rajouter dans le csv
     @staticmethod
     def Kfold_pipeline(model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, n_splits : int=10, 
                        shuffle : bool=True, random_state : int=120) -> tuple[list, list]:
@@ -501,7 +498,8 @@ class Model_evaluator():
             plt.title(f'Box Plot of Residuals for {parameter_name}')
             self.plot_dict[parameter_name]['residuals_boxplot_no_log'] = plotted_boxplot_no_log
         if self.residuals_boxplot: # TODO rajouter dans le mémoire si je le garde
-            plotted_boxplot_log = plt.figure(figsize=(6,6))
+            # le IQR se calcule sur les points de données, pas sur les pourcentages (https://www.geeksforgeeks.org/machine-learning/box-plot/)
+            plotted_boxplot_log = plt.figure(figsize=(6,6)) # whis=(10,90)) # change les whiskers pour qu'ils soient à des percentiles précis
             sns.boxplot(y=absolute_residuals, log_scale=True) # TODO p-ê une erreur, ou alors juste à cause des valeurs du test
             plt.ylabel('Residuals')
             plt.title(f'Box Plot of Residuals for {parameter_name}')
@@ -740,7 +738,8 @@ class Model_evaluator():
 
             elif filename.endswith(".png"):
                 display(Image(filename=full_path + filename)) # TODO ne fonctionne p-ê que dans un notebook
-                    
+
+                 
     def save_predictions(self, preds : np.ndarray, path : str, filename : str, model_name : str=None):
         """
         Saves the given predictions to a .npy file.
