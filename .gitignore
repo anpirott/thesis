@@ -2,5 +2,5 @@ data
 __pycache__
 .ipynb_checkpoints/
 notes_données.txt
-Thèse.code-workspace
 thesis.code-workspace
+.venv

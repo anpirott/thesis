@@ -52,8 +52,8 @@ def isclose_pandas(df, col_name, value, rel_tol=1e-6):
     return bool_index
 
 
-# if __name__ == "__main__":
-#     pass
+if __name__ == "__main__":
+    pass
 
     # path = "C:/Users/antoi/Code/unif/MA2/Thèse/results/K_fold/"
     # print(sanitize_path(path))

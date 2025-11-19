@@ -2,9 +2,8 @@ import pandas as pd
 import sys
 import os
 
-from src.physics import read_mist_models
-
-from src.ML.utils.utils import sanitize_path
+from physics import read_mist_models
+from ML.utils.utils import sanitize_path
 
 
 # TODO? avoir des méthodes qui peuvent dire dans quelle isochrone un point de donnée est, 

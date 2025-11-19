@@ -14,8 +14,8 @@ from sklearn.metrics import explained_variance_score, max_error, mean_absolute_e
                             root_mean_squared_error, median_absolute_error
 from scipy.stats import pearsonr
 
-from src.ML.utils.utils import sanitize_path
-from src.ML.utils.Model_trainer import Model_trainer
+from ML.utils.utils import sanitize_path
+from ML.utils.Model_trainer import Model_trainer
 
 
 # TODO rajouter les exceptions pour les erreurs
@@ -330,7 +330,6 @@ class Model_evaluator():
         for i, col in enumerate(y_test.columns):
             self.calculate_model_evaluation(col, y_test[col].values, y_pred[:, i])
             self.show_model_evaluation(col)
-            # self.print_model_metrics(y_test[col].values, y_pred[:, i], col)
     
     def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, tag : str, save : bool=True):
         """
@@ -349,7 +348,7 @@ class Model_evaluator():
         if save:
             self.save_model_evaluation(tag=tag)
     
-    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, override : bool=False, **kwargs):
+    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, override : bool=False, use_preds : bool = False, **kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
 
@@ -358,17 +357,35 @@ class Model_evaluator():
             X_train_data (numpy.ndarray) : training features
             y_train_data (numpy.ndarray) : training targets
             tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
+            path (str) : path to the directory in which the predictions and truths will be saved
             override (bool) : whether to override existing results or use the existing ones
+            use_preds (bool) : whether to use existing predictions instead of generating new ones
+            **kwargs : additional arguments which will be passed to the model during training
         """
         print(f"\n{tag} train data :")
-        if override or not self.check_existing_results(tag):
-            truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, **kwargs)
-            self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
-            self.save_numpy_array(truth, path, f"{tag}_truths.npy")
-            self.evaluate_predictions(truth[0], preds[0], "mass", tag) # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)
-            self.evaluate_predictions(truth[1], preds[1], "radius", tag) # TODO? rajouter une liste des parameter_name à la classe?
-        else: # TODO rajouter le use case où on ne veut pas recalculer le modèle masi qu'on veut refaire les plots/metrics (si je change un paramètre de plot par exemple)
-            self.show_existing_results(tag)
+        if not use_preds:
+            if not override and self.check_existing_results(tag):
+                self.show_existing_results(tag)
+            else:
+                truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, **kwargs)
+                self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
+                self.save_numpy_array(truth, path, f"{tag}_truths.npy")
+                self.evaluate_predictions(truth[0], preds[0], "mass", tag) # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)
+                self.evaluate_predictions(truth[1], preds[1], "radius", tag) # TODO? rajouter une liste des parameter_name à la classe?
+        if use_preds:
+            if override:
+                print("Error: cannot override when using existing predictions. Set either override or use_preds to False.")
+                sys.exit(1)
+            elif not override:
+                if not self.check_existing_results(tag): # TODO? faire une fonctions qui check si spécifiquement les predictions existent
+                    print("Error: predictions do not exist.")
+                    sys.exit(1)
+                preds = self.load_numpy_array(path, f"{tag}_predictions.npy")
+                truth = self.load_numpy_array(path, f"{tag}_truths.npy")
+                self.evaluate_predictions(truth[0], preds[0], "mass", tag)
+                self.evaluate_predictions(truth[1], preds[1], "radius", tag)
+
+        
     
     def check_existing_results(self, tag : str, model_name : str=None, path : str=None) -> bool:
         """
@@ -457,7 +474,6 @@ class Model_evaluator():
             model_name = self.model_name
         path = sanitize_path(path)
         full_path = path + model_name + "/"
-        print(full_path)
         if not os.path.exists(full_path):
             os.makedirs(full_path)
         np.savetxt(full_path + filename, arr)
@@ -477,8 +493,8 @@ class Model_evaluator():
                 sys.exit(1)
             model_name = self.model_name
         path = sanitize_path(path)
-        
-        return np.load(path + model_name + filename)
+        full_path = path + model_name + "/"
+        return np.load(full_path + filename)
 
 
 if __name__ == "__main__":

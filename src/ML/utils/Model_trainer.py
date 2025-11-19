@@ -45,6 +45,7 @@ class Model_trainer():
             y_train, y_test = y_train_data[train_index], y_train_data[test_index]
 
             mdl = model(**kwargs)
+            print(mdl.get_params())
             mdl.fit(X_train, y_train)
             fold_preds = mdl.predict(X_test)
 
