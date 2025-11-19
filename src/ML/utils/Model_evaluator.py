@@ -14,8 +14,8 @@ from sklearn.metrics import explained_variance_score, max_error, mean_absolute_e
                             root_mean_squared_error, median_absolute_error
 from scipy.stats import pearsonr
 
-from utils.utils import sanitize_path
-from utils.Model_trainer import Model_trainer
+from src.ML.utils.utils import sanitize_path
+from src.ML.utils.Model_trainer import Model_trainer
 
 
 # TODO rajouter les exceptions pour les erreurs
@@ -349,7 +349,7 @@ class Model_evaluator():
         if save:
             self.save_model_evaluation(tag=tag)
     
-    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, override : bool=False):
+    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, override : bool=False, **kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
 
@@ -362,7 +362,7 @@ class Model_evaluator():
         """
         print(f"\n{tag} train data :")
         if override or not self.check_existing_results(tag):
-            truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data)
+            truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, **kwargs)
             self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
             self.save_numpy_array(truth, path, f"{tag}_truths.npy")
             self.evaluate_predictions(truth[0], preds[0], "mass", tag) # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)

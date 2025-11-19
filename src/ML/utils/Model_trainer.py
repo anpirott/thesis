@@ -17,7 +17,7 @@ class Model_trainer():
     # TODO? rajouter le calcul du temps et le rajouter dans le csv
     @staticmethod
     def Kfold_pipeline(model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, n_splits : int=10, 
-                       shuffle : bool=True, random_state : int=120) -> tuple[list, list]:
+                       shuffle : bool=True, random_state : int=120, **kwargs) -> tuple[list, list]:
         """
         Performs K-fold cross-validation on the given model and training data.
 
@@ -44,7 +44,7 @@ class Model_trainer():
             X_train, X_test = X_train_data[train_index], X_train_data[test_index]
             y_train, y_test = y_train_data[train_index], y_train_data[test_index]
 
-            mdl = model()
+            mdl = model(**kwargs)
             mdl.fit(X_train, y_train)
             fold_preds = mdl.predict(X_test)
 
@@ -63,7 +63,7 @@ class Model_trainer():
         pass
 
 if __name__ == "__main__":
-    pass
+    # pass
 
     # def test(a, b):
     #     print(a+b)
@@ -71,3 +71,12 @@ if __name__ == "__main__":
     # params = ["a=1", "b=2"]
 
     # test(eval(params[0]), eval(params[1]))
+
+    def test(a, b, **kwargs):
+        print(a+b)
+        print(type(kwargs))
+        print(kwargs)
+        print(*kwargs)
+        print(kwargs.items())
+    
+    test(1, 2, c=3, d=4)
