@@ -494,7 +494,7 @@ class Model_evaluator():
             model_name = self.model_name
         path = sanitize_path(path)
         full_path = path + model_name + "/"
-        return np.load(full_path + filename)
+        return np.loadtxt(full_path + filename)
 
 
 if __name__ == "__main__":
