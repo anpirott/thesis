@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.stats as stats
+import statsmodels.api as sm
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -170,7 +171,6 @@ class Model_evaluator():
             # thus the red line represents perfect predictions
             # the further away from the line, the larger the error
             # a point above the line means an overestimation, a point below means an underestimation
-
             plotted_predicted_truth = plt.figure(figsize=(6,6))
             plt.scatter(truth, preds, alpha=0.01)
             plt.plot([min(truth), max(truth)], [min(truth), max(truth)], color='red', linestyle='--')
@@ -193,15 +193,15 @@ class Model_evaluator():
             self.plot_dict[parameter_name]['residuals_truth_plot'] = plotted_residuals_truth
         if self.residuals_boxplot: # TODO rajouter dans le mémoire si je le garde
             plotted_boxplot_no_log = plt.figure(figsize=(6,6))
-            sns.boxplot(y=residuals) # without log scale
+            sns.boxplot(y=residuals, fliersize=2, whis=(10, 90)) # without log scale
             plt.ylabel('Residuals')
             plt.title(f'Box Plot of Residuals for {parameter_name}')
             self.plot_dict[parameter_name]['residuals_boxplot_no_log'] = plotted_boxplot_no_log
         if self.residuals_boxplot: # TODO rajouter dans le mémoire si je le garde
             # le IQR se calcule sur les points de données, pas sur les pourcentages (https://www.geeksforgeeks.org/machine-learning/box-plot/)
-            plotted_boxplot_log = plt.figure(figsize=(6,6)) # whis=(10,90)) # change les whiskers pour qu'ils soient à des percentiles précis
-            sns.boxplot(y=absolute_residuals, log_scale=True) # TODO p-ê une erreur, ou alors juste à cause des valeurs du test
-            plt.ylabel('Residuals')
+            plotted_boxplot_log = plt.figure(figsize=(6,6)) 
+            sns.boxplot(y=absolute_residuals, log_scale=True, fliersize=2, whis=(10,90)) # change les whiskers pour qu'ils soient à des percentiles précis
+            plt.ylabel('Residuals') # TODO p-ê une erreur, ou alors juste à cause des valeurs du test
             plt.title(f'Box Plot of Residuals for {parameter_name}')
             self.plot_dict[parameter_name]['residuals_boxplot_log'] = plotted_boxplot_log
         if self.residuals_histogram: # TODO rajouter dans le mémoire si je le garde
@@ -212,6 +212,7 @@ class Model_evaluator():
             plt.title(f'Histogram of Residuals for {parameter_name}')
             self.plot_dict[parameter_name]['residuals_histogram_plot'] = plotted_histogram
         if self.qq_plot: # TODO rajouter dans le mémoire si je le garde
+            # compare la distribution des résidus à une autre distribution (normal, exponentielle, etc.), pas utile si la distribution des résidus ne nous intéresse pas => RMSE vs MAE?
             plotted_qq = plt.figure(figsize=(6,6))
             stats.probplot(residuals, dist="norm", plot=plt)
             plt.xlabel('Theoretical quantiles')
@@ -348,7 +349,7 @@ class Model_evaluator():
         if save:
             self.save_model_evaluation(tag=tag)
     
-    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, override : bool=False, use_preds : bool = False, **kwargs):
+    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, random_state : int=12, override : bool=False, use_preds : bool = False, **kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
 
@@ -367,7 +368,7 @@ class Model_evaluator():
             if not override and self.check_existing_results(tag):
                 self.show_existing_results(tag)
             else:
-                truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, **kwargs)
+                truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, random_state=random_state, **kwargs)
                 self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
                 self.save_numpy_array(truth, path, f"{tag}_truths.npy")
                 self.evaluate_predictions(truth[0], preds[0], "mass", tag) # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)

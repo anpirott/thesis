@@ -57,7 +57,7 @@ class Data_preparator():
         return data_df
 
     @staticmethod
-    def split_data(data_df : pd.DataFrame, x_cols : list, y_cols : list, test_size : float=0.25, shuffle : bool=True, random_state : int=None) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def split_data(data_df : pd.DataFrame, x_cols : list, y_cols : list, test_size : float=0.25, shuffle : bool=True, random_state : int=None, print_stats : bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Splits the given dataframe into training and testing sets.
 
@@ -68,6 +68,7 @@ class Data_preparator():
             test_size (float) : proportion of the data to be used as test set
             shuffle (bool) : whether to shuffle the data before splitting
             random_state (int) : random seed for shuffling the data
+            print_stats (bool) : whether to print some statistics of the train and test sets
         
         Returns:
             tuple of four numpy.ndarrays : the training features (X_train), testing features (X_test), training targets (y_train) and testing targets (y_test)
@@ -75,10 +76,32 @@ class Data_preparator():
         X = data_df[x_cols].to_numpy()
         y = data_df[y_cols].to_numpy()
 
-        return train_test_split(X, y, test_size=test_size, random_state=random_state, shuffle=shuffle)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state, shuffle=shuffle)
+
+        if print_stats:
+            print("Training set statistics:")
+            Data_preparator.show_data_stats(y_train, "train")
+            print("Testing set statistics:")
+            Data_preparator.show_data_stats(y_test, "test")
+
+        return X_train, X_test, y_train, y_test
     
-    def show_data_stats(): # TODO? p-ê pas utiles
-        pass
+    @staticmethod    
+    def show_data_stats(data : np.ndarray, set_type : str): # TODO? changer pour que ça fasse pour un nombre indéterminé de paramètres (pas juste mass et radius)
+        """
+        Shows some statistics of the given data.
+
+        Parameters:
+            data (numpy.ndarray) : data to be analyzed
+            set (str) : name of the dataset (e.g. "train" or "test")
+        """
+        print(f"Range in {set_type} data for the mass parameter : {min(data[:, 0])} - {max(data[:, 0])}")
+        print(f"Median value in {set_type} data for the mass parameter: {np.median(data[:, 0])}")
+        print(f"Mean value in {set_type} data for the mass parameter: {np.mean(data[:, 0])}")
+
+        print(f"Range in {set_type} data for the radius parameter : {min(data[:, 1])} - {max(data[:, 1])}")
+        print(f"Median value in {set_type} data for the radius parameter: {np.median(data[:, 1])}")
+        print(f"Mean value in {set_type} data for the radius parameter: {np.mean(data[:, 1])}\n")
     
     @staticmethod
     def pca_preparation(X_train : np.ndarray, X_test : np.ndarray, verbose : bool=False) -> tuple[np.ndarray, np.ndarray]:
