@@ -349,7 +349,7 @@ class Model_evaluator():
         if save:
             self.save_model_evaluation(tag=tag)
     
-    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, random_state : int=12, override : bool=False, use_preds : bool = False, **kwargs):
+    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool = False, **kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
 
@@ -368,7 +368,7 @@ class Model_evaluator():
             if not override and self.check_existing_results(tag):
                 self.show_existing_results(tag)
             else:
-                truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, random_state=random_state, **kwargs)
+                truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, n_splits=n_splits, random_state=random_state, **kwargs)
                 self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
                 self.save_numpy_array(truth, path, f"{tag}_truths.npy")
                 self.evaluate_predictions(truth[0], preds[0], "mass", tag) # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)

@@ -3,6 +3,7 @@ from collections.abc import Callable
 
 from sklearn.model_selection import KFold
 
+import matplotlib.pyplot as plt
 
 # TODO rajouter les exceptions pour les erreurs
 class Model_trainer():
@@ -46,6 +47,9 @@ class Model_trainer():
 
             mdl = model(**kwargs)
             mdl.fit(X_train, y_train)
+            if "batch_size" in kwargs:
+                plt.plot(mdl.loss_curve_, range(len(mdl.loss_curve_)))
+                print(mdl.best_loss_)
             fold_preds = mdl.predict(X_test)
 
             for i in range(y_train_data.shape[1]):

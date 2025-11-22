@@ -29,7 +29,7 @@ class Iso_data_handler():
 
         self.all_col_names = ["log10_isochrone_age_yr", "initial_mass", "star_mass", "star_mdot", "he_core_mass", "c_core_mass", "log_L", "log_LH", 
                               "log_LHe", "log_Teff", "log_R", "log_g", "surface_h1", "surface_he3", "surface_he4", "surface_c12", "surface_o16", 
-                              "log_center_T", "log_center_Rho", "center_gamma", "center_h1", "center_he4", "center_c12", "phase", "metallicity"]
+                              "log_center_T", "log_center_Rho", "center_gamma", "center_h1", "center_he4", "center_c12", "phase"] # + "metallicity" once the csv has been created
     
     def full_iso_data_to_panda(self, path : str=None, col_names : list[str]=None, override : bool=False) -> pd.DataFrame:
         """
@@ -95,9 +95,7 @@ class Iso_data_handler():
 
         # creates a dictionary containing an empty list for each given column 
         col_dict = {key: [] for key in col_names}
-        filename = os.path.basename(os.path.normpath(path))
-        # the files contain either "m" + number or "p" + number in their name
-        metallicity = float(filename[15:19]) if filename[14] == "p" else -float(filename[15:19])
+        metallicity = iso.abun['[Fe/H]']
 
         for iso_ind in range(len(iso.isos)):
             for keys in col_dict.keys():
