@@ -284,6 +284,7 @@ class Iso_data_handler():
 
 
 if __name__ == "__main__":
+    pass
     # test_class = Iso_data_handler("C:/Users/antoi/Code/unif/MA2/Thèse/data/MIST_v1.2_vvcrit0.0_basic_isos/",
     #                               ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase'])
     # test_df = test_class.full_iso_data_to_panda(override=False)
