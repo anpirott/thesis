@@ -50,8 +50,9 @@ def first_method(age, metallicity, log_Teff, log_g, q, primary_mdl_path="model/p
 
 if __name__ == "__main__":
     iso_handler = Iso_data_handler("data/MIST_v1.2_vvcrit0.0_basic_isos/", 
-                              ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase', 'metallicity', 'log_R'])
-    test_df = iso_handler.full_iso_data_to_panda(override=False)
+                              ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase', 'metallicity', 'log_R'],
+                              "MIST")
+    test_df = iso_handler.get_isochrone_dataframe(override=False)
 
     index = int(sys.argv[1])
     q = float(sys.argv[2])
