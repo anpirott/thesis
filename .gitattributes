@@ -1,2 +1,5 @@
 data/ filter=lfs diff=lfs merge=lfs -text
 predictions/ filter=lfs diff=lfs merge=lfs -text
+data/MIST_v1.2_vvcrit0.0_basic_isos/*.iso filter=lfs diff=lfs merge=lfs -text
+data/PARSEC/*.dat filter=lfs diff=lfs merge=lfs -text
+predictions/K_fold/*/*.npy filter=lfs diff=lfs merge=lfs -text
