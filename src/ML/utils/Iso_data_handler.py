@@ -15,11 +15,12 @@ class Iso_data_handler():
     """
     Class used to handle the isochrone data from either MIST or PARSEC
 
-    Methods:
-        get_isochrone_dataframe (pd.DataFrame) : 
-        _full_PARSEC_data_to_panda (pd.DataFrame) :
-        _full_MIST_data_to_panda (pd.DataFrame) :
-        _MIST_data_to_panda (pd.DataFrame) :
+    methods:
+        __init__ : Initializes the Iso_data_handler class.
+        get_isochrone_dataframe (pd.DataFrame) : Uses the internal functions to give a dataframe containing either MIST or PARSEC data.
+        _full_isochrone_data_to_dataframe (pd.DataFrame) : Reads all MIST or PARSEC isochrone files in the given directory and creates a pandas dataframe of all the data with the requested columns.
+        _MIST_data_to_panda (pd.DataFrame) : # TODO!
+        _PARSEC_data_to_panda (pd.DataFrame) : # TODO!
     """
     def __init__(self, path : str, col_names : list[str], physical_model : str):
         """
@@ -57,7 +58,11 @@ class Iso_data_handler():
             print("Error: col_names should be initialized as a list of strings.")
             sys.exit(1)
         self.col_names = col_names
-        self.physical_model = physical_model
+        if physical_model == "MIST" or physical_model == "PARSEC":
+            self.physical_model = physical_model
+        else:
+            print("Error: physical_model should be either 'MIST' or 'PARSEC'")
+            sys.exit(1)
 
         self.all_MIST_col_names = ["log10_isochrone_age_yr", "initial_mass", "star_mass", "star_mdot", "he_core_mass", "c_core_mass", "log_L", "log_LH", 
                                    "log_LHe", "log_Teff", "log_R", "log_g", "surface_h1", "surface_he3", "surface_he4", "surface_c12", "surface_o16", 
@@ -80,7 +85,7 @@ class Iso_data_handler():
                                      'H_i15', 'H_i20', 'H_i25', 'H_i30', 'H_i35', 'H_i40', 'H_i45', 'H_i50', 'H_i55', 'H_i60', 'H_i65', 'H_i70', 'H_i75', 
                                      'H_i80', 'H_i85', 'H_i90', 'K_fSB', 'K_f0', 'K_fk', 'K_i00', 'K_i05', 'K_i10', 'K_i15', 'K_i20', 'K_i25', 'K_i30', 
                                      'K_i35', 'K_i40', 'K_i45', 'K_i50', 'K_i55', 'K_i60', 'K_i65', 'K_i70', 'K_i75', 'K_i80', 'K_i85', 'K_i90']
- # + "metallicity" once the csv has been created, we do not use Zini to be consistent with MIST data
+        # + "metallicity" once the csv has been created, we do not use Zini to be consistent with MIST data
         # quelles colonnes on veut : ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'phase', 'metallicity', 'star_mass', 'log_R']
         # quelles colonnes on a    : ['logAge', 'logTe' 'logg', 'label', 'metallicity', 'Mass', 'Rpol'] (metallicity dans le nom du fichier) (rayon n'est pas en log)
         # 0 = PMS, pre main sequence
@@ -94,10 +99,13 @@ class Iso_data_handler():
         # 8 = TPAGB, the thermally pulsing asymptotic giant branch
         # 9 = post-AGB (in preparation!)
     
-    def get_isochrone_dataframe(self, path : str=None, col_names : list[str]=None, override : bool=False) -> pd.DataFrame:
+    def get_isochrone_dataframe(self, path : str=None, col_names : list[str]=None, physical_model : str=None, override : bool=False) -> pd.DataFrame:
         """
         Uses the internal functions to give a dataframe containing either MIST or PARSEC data.
-        To be usable, the PARSEC isochrone files' 15th line needs to be uncommented so that the column names can be extracted
+        
+        To be usable, the PARSEC isochrone files' 15th line needs to be uncommented so that the column names can be extracted, 
+        the file also needs to be renamed in the form of "PARSEC_feh_[m/p][X.XX].dat" where "m" represents "minus" and "p" represents "plus" 
+        and "X.XX" represents the metallicity value using [Fe/H]. (e.g. "PARSEC_feh_m1.00.dat" represents an isochrone with a metallicity of -1)
 
         Parameters:
             path (str) : path to the directory containing the MIST isochrone files
@@ -123,7 +131,8 @@ class Iso_data_handler():
                                                H_i15, H_i20, H_i25, H_i30, H_i35, H_i40, H_i45, H_i50, H_i55, H_i60, H_i65, H_i70, H_i75, 
                                                H_i80, H_i85, H_i90, K_fSB, K_f0, K_fk, K_i00, K_i05, K_i10, K_i15, K_i20, K_i25, K_i30, 
                                                K_i35, K_i40, K_i45, K_i50, K_i55, K_i60, K_i65, K_i70, K_i75, K_i80, K_i85, K_i90
-
+            
+            physical_model (str): defines which data to use, either "MIST" or "PARSEC"
             override (bool): recomputes the dataframe and save it in a csv file if set to True. 
                              Otherwise, it only computes the dataframe if the file does not exist and returns the saved dataframe if it does.
         
@@ -137,52 +146,65 @@ class Iso_data_handler():
                 col_names = self.all_MIST_col_names
             else:
                 col_names = self.col_names
+        if physical_model is None:
+            physical_model = self.physical_model
+        
+        iso_df = self._full_isochrone_data_to_dataframe(path, col_names, physical_model, override)
 
-        if self.physical_model == "MIST":
-            iso_df = self._full_MIST_data_to_panda(path, col_names, override)
-        elif self.physical_model == "PARSEC":
-            iso_df = self._full_PARSEC_data_to_panda(path, col_names, override)
         return iso_df
     
-    # TODO mettre les deux fonctions en une vu que le seul changement c'est la façon dont on créé les données (dans une autre fct), le nom des fichiers et quelques variables
-    def _full_PARSEC_data_to_panda(self, path : str, col_names : list[str], override : bool) -> pd.DataFrame:
+    def _full_isochrone_data_to_dataframe(self, path : str, col_names : list[str], physical_model : str, override : bool) -> pd.DataFrame:
         """
-        Reads all PARSEC isochrone files in the given directory and creates a pandas dataframe of all the data with the requested columns.
+        Reads all MIST or PARSEC isochrone files in the given directory and creates a pandas dataframe of all the data with the requested columns.
         The dataframe, with all columns, is saved in the directory under the name "PARSEC_iso_full_data.csv".
-        To be usable, the isochrone files' 15th line needs to be uncommented so that the column names can be extracted
+
+        To be usable, the PARSEC isochrone files' 15th line needs to be uncommented so that the column names can be extracted, 
+        the file also needs to be renamed in the form of "PARSEC_feh_[m/p][X.XX].dat" where "m" represents "minus" and "p" represents "plus" 
+        and "X.XX" represents the metallicity value using [Fe/H]. (e.g. "PARSEC_feh_m1.00.dat" represents an isochrone with a metallicity of -1)
 
         Parameters:
             path (str) : path to the directory containing the PARSEC isochrone files
             col_names (list of str) : names of the columns to be extracted. If set to an empty list, uses all the columns.
                 Possible names are: log10_isochrone_age_yr, initial_mass, star_mass, star_mdot, he_core_mass, c_core_mass, log_L, log_LH, log_LHe, log_Teff, log_R, log_g, surface_h1,
                                     surface_he3, surface_he4, surface_c12, surface_o16, log_center_T, log_center_Rho, center_gamma, center_h1, center_he4, center_c12, phase
+            physical_model (str) : defines which data to use, either "MIST" or "PARSEC"
             override (bool) : recomputes the dataframe and save it in a csv file if set to True. 
                               Otherwise, it only computes the dataframe if the file does not exist and returns the saved dataframe if it does.
                                     
         Returns:
             pandas.DataFrame : a pandas dataframe containing the data of the isochrones with the requested columns
         """
-        if override | (not os.path.exists(path + "PARSEC_iso_full_data.csv")):
+        if override | (not os.path.exists(path + f"{physical_model}_iso_full_data.csv")):
             # creates a dictionary containing an empty list for each given column 
-            col_dict = {key: [] for key in self.all_PARSEC_col_names}
+            if physical_model == "MIST":
+                col_dict = {key: [] for key in self.all_MIST_col_names}
+            elif physical_model == "PARSEC":
+                col_dict = {key: [] for key in self.all_PARSEC_col_names}
             col_dict["metallicity"] = []
             full_iso_df = pd.DataFrame.from_dict(col_dict)
             
-            # reads all the .iso files in the directory and appends their data to the dataframe
+            # reads all the .iso and .dat files in the directory and appends their data to the dataframe
             for filename in os.listdir(path):
-                if filename.endswith(".dat"):
-                    iso_df = self._PARSEC_data_to_panda(path + filename, self.all_PARSEC_col_names)
-                    full_iso_df = pd.concat([full_iso_df, iso_df], ignore_index=True)
+                iso_df = None
+                if physical_model == "MIST":
+                    if filename.endswith(".iso"):
+                        iso_df = self._MIST_data_to_panda(path + filename, self.all_MIST_col_names) 
+                        # TODO? si je fais une seule fonction, je peux envoyer la fin du fichier pour savoir si je peux l'utiliser ou pas
+                elif physical_model == "PARSEC":
+                    if filename.endswith(".dat"):
+                        iso_df = self._PARSEC_data_to_panda(path + filename, self.all_PARSEC_col_names)
+                full_iso_df = pd.concat([full_iso_df, iso_df], ignore_index=True)
             
             # saves the dataframe in a csv file
-            print("Writing PARSEC dataframe to csv file...")
-            full_iso_df.to_csv(path + "PARSEC_iso_full_data.csv", sep=',', encoding='utf-8', index=False, header=True)
+            print(f"Writing {physical_model} dataframe to csv file...")
+            full_iso_df.to_csv(path + f"{physical_model}_iso_full_data.csv", sep=',', encoding='utf-8', index=False, header=True)
         else:
-            print("Reading PARSEC dataframe from csv file...")
-            full_iso_df = pd.read_csv(path + "PARSEC_iso_full_data.csv")
+            print(f"Reading {physical_model} dataframe from csv file...")
+            full_iso_df = pd.read_csv(path + f"{physical_model}_iso_full_data.csv")
         
         return full_iso_df[col_names]
     
+    # TODO? faire les deux fonctions en une, je pense pas que c'est très intéressant
     def _PARSEC_data_to_panda(self, path : str, col_names : list[str]) -> pd.DataFrame:
         """
         Reads a PARSEC isochrone file and returns a pandas dataframe with the requested columns.
@@ -213,46 +235,6 @@ class Iso_data_handler():
         iso_df["metallicity"] = metallicity
 
         return iso_df
-
-
-    
-    def _full_MIST_data_to_panda(self, path : str, col_names : list[str], override : bool) -> pd.DataFrame:
-        """
-        Reads all MIST isochrones files in the given directory and creates a pandas dataframe of all the data with the requested columns.
-        The dataframe, with all columns, is saved in the directory under the name "MIST_iso_full_data.csv".
-
-        Parameters:
-            path (str) : path to the directory containing the MIST isochrone files
-            col_names (list of str) : names of the columns to be extracted. If set to an empty list, uses all the columns.
-                Possible names are: log10_isochrone_age_yr, initial_mass, star_mass, star_mdot, he_core_mass, c_core_mass, log_L, log_LH, log_LHe, log_Teff, log_R, log_g, surface_h1,
-                                    surface_he3, surface_he4, surface_c12, surface_o16, log_center_T, log_center_Rho, center_gamma, center_h1, center_he4, center_c12, phase
-            override (bool) : recomputes the dataframe and save it in a csv file if set to True. 
-                              Otherwise, it only computes the dataframe if the file does not exist and returns the saved dataframe if it does.
-                                    
-        Returns:
-            pandas.DataFrame : a pandas dataframe containing the data of the isochrones with the requested columns
-        """
-        if override | (not os.path.exists(path + "MIST_iso_full_data.csv")):
-            # creates a dictionary containing an empty list for each given column 
-            col_dict = {key: [] for key in self.all_MIST_col_names}
-            col_dict["metallicity"] = []
-            full_iso_df = pd.DataFrame.from_dict(col_dict)
-            
-            # reads all the .iso files in the directory and appends their data to the dataframe
-            for filename in os.listdir(path):
-                if filename.endswith(".iso"):
-                    iso_df = self._MIST_data_to_panda(path + filename, self.all_MIST_col_names)
-                    full_iso_df = pd.concat([full_iso_df, iso_df], ignore_index=True)
-            
-            # saves the dataframe in a csv file
-            print("Writing MIST dataframe to csv file...")
-            full_iso_df.to_csv(path + "MIST_iso_full_data.csv", sep=',', encoding='utf-8', index=False, header=True)
-
-        else:
-            print("Reading MIST dataframe from csv file...")
-            full_iso_df = pd.read_csv(path + "MIST_iso_full_data.csv")
-        
-        return full_iso_df[col_names]
 
     def _MIST_data_to_panda(self, path : str, col_names : list[str]) -> pd.DataFrame:
         """
@@ -285,11 +267,11 @@ class Iso_data_handler():
 
 if __name__ == "__main__":
     pass
-    # test_class = Iso_data_handler("C:/Users/antoi/Code/unif/MA2/Thèse/data/MIST_v1.2_vvcrit0.0_basic_isos/",
-    #                               ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase'])
+    test_class = Iso_data_handler("C:/Users/antoi/Code/unif/MA2/thesis/data/MIST_v1.2_vvcrit0.0_basic_isos/",
+                                  ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase'],
+                                  "MIST")
     # test_df = test_class.full_iso_data_to_panda(override=False)
     # print(test_df)
-    # initialize data of lists.
 
     # test_class = Iso_data_handler("C:/Users/antoi/Code/unif/MA2/thesis/data/PARSEC/",
     #                               ['logAge', 'logTe', 'logg', 'label', 'metallicity', 'Mass', 'Rpol'],
@@ -312,5 +294,5 @@ if __name__ == "__main__":
     #                                  'H_i80', 'H_i85', 'H_i90', 'K_fSB', 'K_f0', 'K_fk', 'K_i00', 'K_i05', 'K_i10', 'K_i15', 'K_i20', 'K_i25', 'K_i30', 
     #                                  'K_i35', 'K_i40', 'K_i45', 'K_i50', 'K_i55', 'K_i60', 'K_i65', 'K_i70', 'K_i75', 'K_i80', 'K_i85', 'K_i90'])
 
-    # test_df = test_class.get_isochrone_dataframe(override=False)
-    # print(test_df)
+    test_df = test_class.get_isochrone_dataframe(override=True)
+    print(test_df)
