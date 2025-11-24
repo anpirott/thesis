@@ -67,7 +67,7 @@ class Model_trainer():
         pass
 
 if __name__ == "__main__":
-    # pass
+    pass
 
     # def test(a, b):
     #     print(a+b)
@@ -76,11 +76,11 @@ if __name__ == "__main__":
 
     # test(eval(params[0]), eval(params[1]))
 
-    def test(a, b, **kwargs):
-        print(a+b)
-        print(type(kwargs))
-        print(kwargs)
-        print(*kwargs)
-        print(kwargs.items())
+    # def test(a, b, **kwargs):
+    #     print(a+b)
+    #     print(type(kwargs))
+    #     print(kwargs)
+    #     print(*kwargs)
+    #     print(kwargs.items())
     
-    test(1, 2, c=3, d=4)
+    # test(1, 2, c=3, d=4)
