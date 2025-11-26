@@ -1,11 +1,11 @@
 import numpy as np
 import scipy.stats as stats
-import statsmodels.api as sm
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import sys
 import os
+import time
 import csv
 from collections.abc import Callable
 from IPython.display import Image
@@ -31,7 +31,7 @@ class Model_evaluator():
         show_model_evaluation : shows various metrics and plots for the given model predictions
         save_model_evaluation : saves various metrics and plots for the given model predictions to a CSV file and images in a directory
     """
-    def __init__(self, model_name : str, model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, 
+    def __init__(self, model_name : str, model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, # TODO? rajouter le temps dans le dict?
                  rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
                  predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, qq_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
@@ -273,7 +273,7 @@ class Model_evaluator():
                 plt.show()
                 # plot_dict[param][plot_name].show()
     
-    def save_model_evaluation(self,  tag : str, model_name : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None): # TODO tester le save
+    def save_model_evaluation(self,  tag : str, model_name : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None, time : float=None, train_method : str=None):
         """
         Saves various metrics and plots for the given model predictions to a CSV file and images in a directory.
 
@@ -307,6 +307,10 @@ class Model_evaluator():
                 print("Error: plot_dict not provided.")
                 sys.exit(1)
             plot_dict = self.plot_dict
+
+        if time is not None:
+            with open(path + f"{model_name}/{tag}/time_taken.txt", 'w') as file:
+                file.write(f"Time,method\n{time},{train_method}")
         
         metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index')
         if not os.path.exists(path + f"{model_name}/{tag}/"):
@@ -317,7 +321,7 @@ class Model_evaluator():
             for plot_name in plot_dict[parameter_name].keys():
                 plot_dict[parameter_name][plot_name].savefig(path + f"{self.model_name}/{tag}/" + f"{parameter_name}_{plot_name}.png")
 
-    # TODO! ne fonctionne pas
+    # TODO! ne fonctionne pas, pas encore fini
     def evaluate_model(self, model, X_test : np.ndarray, y_test : np.ndarray):
         """
         Evaluates the given model on the test data and prints the metrics.
@@ -332,22 +336,24 @@ class Model_evaluator():
             self.calculate_model_evaluation(col, y_test[col].values, y_pred[:, i])
             self.show_model_evaluation(col)
     
-    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, tag : str, save : bool=True):
+    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, tag : str, save : bool=True, time : float=None, train_method : str=None):
         """
         Evaluates the given predictions and prints the metrics.
 
         Parameters:
             truth (np.ndarray) : true values
-            pred (np.ndarray) : predicted values
+            preds (np.ndarray) : predicted values
             parameter_name (str) : name of the parameter being evaluated
             tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
             save (bool) : whether to save the metrics and plots
+            time (float) : time taken for the model to have been trained
+            train_method (str) : what method was used to train the model (i.e. "K_fold" or "normal")
         """
         self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds)
         self.show_model_evaluation(parameter_name)
 
         if save:
-            self.save_model_evaluation(tag=tag)
+            self.save_model_evaluation(tag=tag, time=time, train_method=train_method)
     
     def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool = False, **kwargs):
         """
@@ -368,11 +374,13 @@ class Model_evaluator():
             if not override and self.check_existing_results(tag):
                 self.show_existing_results(tag)
             else:
+                start = time.time()
                 truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, n_splits=n_splits, random_state=random_state, **kwargs)
+                end = time.time()
                 self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
                 self.save_numpy_array(truth, path, f"{tag}_truths.npy")
-                self.evaluate_predictions(truth[0], preds[0], "mass", tag) # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)
-                self.evaluate_predictions(truth[1], preds[1], "radius", tag) # TODO? rajouter une liste des parameter_name à la classe?
+                self.evaluate_predictions(truth[0], preds[0], "mass", tag, time=end-start, train_method="K_fold") # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)
+                self.evaluate_predictions(truth[1], preds[1], "radius", tag, time=end-start, train_method="K_fold") # TODO? rajouter une liste des parameter_name à la classe?
         if use_preds:
             if override:
                 print("Error: cannot override when using existing predictions. Set either override or use_preds to False.")
