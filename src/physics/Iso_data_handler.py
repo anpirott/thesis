@@ -147,14 +147,11 @@ class Iso_data_handler():
         if reclassify is None:
             reclassify = self.reclassify
         
-        iso_df = self._full_isochrone_data_to_dataframe(path, col_names, physical_model, override)
-
-        if (physical_model == "MIST") and reclassify:
-            iso_df = self.reclassify_misclassified_stars(iso_df)
+        iso_df = self._full_isochrone_data_to_dataframe(path, col_names, physical_model, override, reclassify)
 
         return iso_df
     
-    def _full_isochrone_data_to_dataframe(self, path : str, col_names : list[str], physical_model : str, override : bool) -> pd.DataFrame:
+    def _full_isochrone_data_to_dataframe(self, path : str, col_names : list[str], physical_model : str, override : bool, reclassify : bool) -> pd.DataFrame:
         """
         Reads all MIST or PARSEC isochrone files in the given directory and creates a pandas dataframe of all the data with the requested columns.
         The dataframe, with all columns, is saved in the directory under the name "PARSEC_iso_full_data.csv".
@@ -171,11 +168,18 @@ class Iso_data_handler():
             physical_model (str) : defines which data to use, either "MIST" or "PARSEC"
             override (bool) : recomputes the dataframe and save it in a csv file if set to True. 
                               Otherwise, it only computes the dataframe if the file does not exist and returns the saved dataframe if it does.
+            reclassify (bool): parameter which is used with MIST data as there are some stars which are misclassified.
+                               If set to True, reclassifies the stars in the dataset, does not if set to False.
                                     
         Returns:
             pandas.DataFrame : a pandas dataframe containing the data of the isochrones with the requested columns
         """
-        if override | (not os.path.exists(path + f"{physical_model}_iso_full_data.csv")):
+        if (physical_model == "MIST") and reclassify:
+            csv_filename = f"{physical_model}_reclassified_iso_full_data.csv"
+        else:
+            csv_filename = f"{physical_model}_iso_full_data.csv"
+        
+        if override | (not os.path.exists(path + csv_filename)):
             # creates a dictionary containing an empty list for each given column 
             if physical_model == "MIST":
                 col_dict = {key: [] for key in self.all_MIST_col_names}
@@ -196,12 +200,15 @@ class Iso_data_handler():
                         iso_df = self._PARSEC_data_to_panda(path + filename, self.all_PARSEC_col_names)
                 full_iso_df = pd.concat([full_iso_df, iso_df], ignore_index=True)
             
+            if (physical_model == "MIST") and reclassify:
+                full_iso_df = self.reclassify_misclassified_stars(full_iso_df)
+                
             # saves the dataframe in a csv file
             print(f"Writing {physical_model} dataframe to csv file...")
-            full_iso_df.to_csv(path + f"{physical_model}_iso_full_data.csv", sep=',', encoding='utf-8', index=False, header=True)
+            full_iso_df.to_csv(path + csv_filename, sep=',', encoding='utf-8', index=False, header=True)
         else:
             print(f"Reading {physical_model} dataframe from csv file...")
-            full_iso_df = pd.read_csv(path + f"{physical_model}_iso_full_data.csv")
+            full_iso_df = pd.read_csv(path + csv_filename)
         
         return full_iso_df[col_names]
     
