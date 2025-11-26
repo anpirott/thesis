@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from astropy.table import Table
 import sys
@@ -21,8 +22,10 @@ class Iso_data_handler():
         _full_isochrone_data_to_dataframe (pd.DataFrame) : Reads all MIST or PARSEC isochrone files in the given directory and creates a pandas dataframe of all the data with the requested columns.
         _MIST_data_to_panda (pd.DataFrame) : Reads a MIST isochrone file and returns a pandas dataframe with the requested columns.
         _PARSEC_data_to_panda (pd.DataFrame) : Reads a PARSEC isochrone file and returns a pandas dataframe with the requested columns.
+        reclassify_misclassified_stars (pd.DataFrame) : Reclassifies the data points which have the wrong phase. Is used when parameter "reclassify" is set to True
+        _sub_reclassify_misclassified_stars (pd.DataFrame) : Function which is used by reclassify_misclassified_stars(). Should not be used by itself.
     """
-    def __init__(self, path : str, col_names : list[str], physical_model : str):
+    def __init__(self, path : str, col_names : list[str], physical_model : str, reclassify : bool=None):
         """
         Initializes the Iso_data_handler class.
 
@@ -51,6 +54,8 @@ class Iso_data_handler():
                                                H_i80, H_i85, H_i90, K_fSB, K_f0, K_fk, K_i00, K_i05, K_i10, K_i15, K_i20, K_i25, K_i30, 
                                                K_i35, K_i40, K_i45, K_i50, K_i55, K_i60, K_i65, K_i70, K_i75, K_i80, K_i85, K_i90
             physical_model (str): defines which data to use, either "MIST" or "PARSEC"
+            reclassify (bool): parameter which is used with MIST data as there are some stars which are misclassified.
+                               If set to True, reclassifies the stars in the dataset, does not if set to False.
         """
         self.path = sanitize_path(path)
 
@@ -63,6 +68,7 @@ class Iso_data_handler():
         else:
             print("Error: physical_model should be either 'MIST' or 'PARSEC'")
             sys.exit(1)
+        self.reclassify = reclassify
 
         self.all_MIST_col_names = ["log10_isochrone_age_yr", "initial_mass", "star_mass", "star_mdot", "he_core_mass", "c_core_mass", "log_L", "log_LH", 
                                    "log_LHe", "log_Teff", "log_R", "log_g", "surface_h1", "surface_he3", "surface_he4", "surface_c12", "surface_o16", 
@@ -87,7 +93,7 @@ class Iso_data_handler():
                                      'K_i35', 'K_i40', 'K_i45', 'K_i50', 'K_i55', 'K_i60', 'K_i65', 'K_i70', 'K_i75', 'K_i80', 'K_i85', 'K_i90']
         # + "metallicity" once the csv has been created, we do not use Zini to be consistent with MIST data
     
-    def get_isochrone_dataframe(self, path : str=None, col_names : list[str]=None, physical_model : str=None, override : bool=False) -> pd.DataFrame:
+    def get_isochrone_dataframe(self, path : str=None, col_names : list[str]=None, physical_model : str=None, override : bool=False, reclassify : bool=None) -> pd.DataFrame:
         """
         Uses the internal functions to give a dataframe containing either MIST or PARSEC data.
         
@@ -123,6 +129,8 @@ class Iso_data_handler():
             physical_model (str): defines which data to use, either "MIST" or "PARSEC"
             override (bool): recomputes the dataframe and save it in a csv file if set to True. 
                              Otherwise, it only computes the dataframe if the file does not exist and returns the saved dataframe if it does.
+            reclassify (bool): parameter which is used with MIST data as there are some stars which are misclassified.
+                               If set to True, reclassifies the stars in the dataset, does not if set to False.
         
         Returns:
             pandas.DataFrame : a pandas dataframe containing the data of the isochrones with the requested columns
@@ -136,8 +144,13 @@ class Iso_data_handler():
                 col_names = self.col_names
         if physical_model is None:
             physical_model = self.physical_model
+        if reclassify is None:
+            reclassify = self.reclassify
         
         iso_df = self._full_isochrone_data_to_dataframe(path, col_names, physical_model, override)
+
+        if (physical_model == "MIST") and reclassify:
+            iso_df = self.reclassify_misclassified_stars(iso_df)
 
         return iso_df
     
@@ -251,6 +264,51 @@ class Iso_data_handler():
         iso_df["metallicity"] = metallicity
 
         return iso_df
+    
+    # TODO rajouter docstring
+    def reclassify_misclassified_stars(self, data_df : pd.DataFrame) -> pd.DataFrame:
+        """
+        Reclassifies the data points which have the wrong phase. Is used when parameter "reclassify" is set to True
+
+        Parameters:
+            iso_df (pd.DataFrame) : the dataframe containing the MIST data with missclassified stars.
+        """
+        data_dff = data_df.copy(deep=True)
+        # metallicity = 0.5
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, 0.5, (3.7, 4, 3.57), (4, 0, 4.2))
+        # metallicity = 0.25
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, 0.25, (3.85, 5, 3.6), (3.7, 0, 4.2))
+        # metallicity = 0.0
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, 0.0, (5, 3.7, 5), (0, 4.5, 0))
+        # metallicity = -0.25
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, -0.25, (5, 3.7, 3.65), (0, 4.5, 4.5))
+        # metallicity = -0.5
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, -0.5, (5, 5, 3.75), (0, 0, 3.9))
+        # metallicity = -2.0
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, -2.0, (5, 5, 3.7), (0, 0, 3.8))
+        # metallicity = -3.0
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, -3.0, (5, 5, 3.7), (0, 0, 4.45))
+        # metallicity = -3.5
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, -3.5, (5, 5, 3.7), (0, 0, 4.45))
+        # metallicity = -4.0
+        data_dff = self._sub_reclassify_misclassified_stars(data_dff, -4.0, (5, 5, 3.7), (0, 0, 4.3))
+
+        return data_dff
+    
+    def _sub_reclassify_misclassified_stars(self, data_df : pd.DataFrame, metallicity : float, log_Teff_lim : tuple[float], log_L_lim : tuple[float]) -> pd.DataFrame:
+        """
+        Function which is used by reclassify_misclassified_stars(). Should not be used by itself.
+        """
+        data_dff = data_df.copy(deep=True)
+
+        data_dff.loc[((data_dff["metallicity"] == metallicity) & (data_dff["phase"] == 3) & 
+                      (data_dff["log_Teff"] >= log_Teff_lim[0]) & (data_dff["log_L"] <= log_L_lim[0])), ["phase"]] = 6
+        data_dff.loc[((data_dff["metallicity"] == metallicity) & (data_dff["phase"] == 4) & 
+                      (data_dff["log_Teff"] >= log_Teff_lim[1]) & (data_dff["log_L"] <= log_L_lim[1])), ["phase"]] = 6
+        data_dff.loc[((data_dff["metallicity"] == metallicity) & (data_dff["phase"] == 5) & 
+                      (data_dff["log_Teff"] >= log_Teff_lim[2]) & (data_dff["log_L"] <= log_L_lim[2])), ["phase"]] = 6
+        
+        return data_dff
 
 
 if __name__ == "__main__":

@@ -2,20 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 import sys
-import os
-
-# xlabel_HR_Kiel = "$\log(T_{\mathrm{eff}}) [\mathrm{K}]$"
-
-# ylabel_HR = "$\log(L/L_{\odot})$"
-
-# ylabel_Kiel = "$\log(g) [\mathrm{cm/s^2}]$"
-
-# legend_title_age = "$\log(Age) [\mathrm{yr}]$"
-# legend_title_phase = "Phases"
 
 # quelles colonnes on veut : ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'phase', 'metallicity', 'star_mass', 'log_R', "log_L"]
 # quelles colonnes on a    : ['logAge',                 'logTe'     'logg',  'label', 'metallicity', 'Mass',      'Rpol',  "logL"]
 
+# TODO mettre les docstrings
 class Data_visualiser():
     def __init__(self, iso_df : pd.DataFrame, physical_model : str):
         self.iso_df = iso_df
@@ -34,7 +25,7 @@ class Data_visualiser():
         self.all_metallicities_PARSEC = [-2.75, -2.5, -2.25, -2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5]
 
     # TODO? deux fonctions en une avec un paramètre pour savoir si je prends le log_L ou le log_g
-    def plot_HR(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None):
+    def plot_HR(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):
         if iso_df is None:
             iso_df = self.iso_df
         if physical_model is None:
@@ -49,6 +40,8 @@ class Data_visualiser():
                 metallicities = self.all_metallicities_MIST
             elif physical_model == "PARSEC":
                 metallicities = self.all_metallicities_PARSEC
+        if x_lim is None:
+            x_lim = (5.7, 3.3)
         
         if physical_model == "MIST":
             unique_phases = iso_df["phase"].unique()
@@ -71,7 +64,9 @@ class Data_visualiser():
                         logL = iso_df[(iso_df["label"]==phase) & (iso_df["metallicity"]==metallicity) & (iso_df["logAge"]==age)]["logL"]
                         plt.plot(logTeff, logL, c=c_dict[phase])
                 
-            plt.xlim(5.7, 3.3)
+            plt.xlim(x_lim[0], x_lim[1])
+            if y_lim is not None:
+                plt.ylim(y_lim[0], y_lim[1])
             plt.xlabel("$\log(T_{\mathrm{eff}}) [\mathrm{K}]$")
             plt.ylabel("$\log(L/L_{\odot})$")
             plt.legend(title="Phases", fontsize="small", 
@@ -79,7 +74,7 @@ class Data_visualiser():
             plt.title(f"Metallicity = {metallicity}")
             plt.show()
 
-    def plot_Kiel(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None):
+    def plot_Kiel(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):
         if iso_df is None:
             iso_df = self.iso_df
         if physical_model is None:
@@ -94,6 +89,8 @@ class Data_visualiser():
                 metallicities = self.all_metallicities_MIST
             elif physical_model == "PARSEC":
                 metallicities = self.all_metallicities_PARSEC
+        if x_lim is None:
+            x_lim = (5.7, 3.3)
         
         if physical_model == "MIST":
             unique_phases = iso_df["phase"].unique()
@@ -116,7 +113,9 @@ class Data_visualiser():
                         logg = iso_df[(iso_df["label"]==phase) & (iso_df["metallicity"]==metallicity) & (iso_df["logAge"]==age)]["logg"]
                         plt.plot(logTeff, logg, c=c_dict[phase])
                 
-            plt.xlim(5.7, 3.3)
+            plt.xlim(x_lim[0], x_lim[1])
+            if y_lim is not None:
+                plt.ylim(y_lim[0], y_lim[1])
             plt.gca().invert_yaxis()
             plt.xlabel("$\log(T_{\mathrm{eff}}) [\mathrm{K}]$")
             plt.ylabel("$\log(g) [\mathrm{cm/s^2}]$")

@@ -31,30 +31,31 @@ class Data_preparator():
         Returns:
             pandas.DataFrame : a pandas dataframe containing the filtered data
         """
+        data_dff = data_df.copy(deep=True)
         for key in filter_dict.keys():
             if isinstance(filter_dict[key], tuple) and len(filter_dict[key]) == 2:
                 operator, value = filter_dict[key]
                 if operator == "<":
-                    data_df = data_df[data_df[key] < value].dropna().reset_index(drop=True)
+                    data_dff = data_dff[data_dff[key] < value].dropna().reset_index(drop=True)
                 elif operator == "<=":
-                    data_df = data_df[data_df[key] <= value].dropna().reset_index(drop=True)
+                    data_dff = data_dff[data_dff[key] <= value].dropna().reset_index(drop=True)
                 elif operator == ">":
-                    data_df = data_df[data_df[key] > value].dropna().reset_index(drop=True)
+                    data_dff = data_dff[data_dff[key] > value].dropna().reset_index(drop=True)
                 elif operator == ">=":
-                    data_df = data_df[data_df[key] >= value].dropna().reset_index(drop=True)
+                    data_dff = data_dff[data_dff[key] >= value].dropna().reset_index(drop=True)
                 elif operator == "==":
-                    data_df = data_df[data_df[key] == value].dropna().reset_index(drop=True)
+                    data_dff = data_dff[data_dff[key] == value].dropna().reset_index(drop=True)
                 elif operator == "!=":
-                    data_df = data_df[data_df[key] != value].dropna().reset_index(drop=True)
+                    data_dff = data_dff[data_dff[key] != value].dropna().reset_index(drop=True)
                 else:
                     print(f"Error: invalid operator '{operator}' in filter_dict for key '{key}'.")
                     sys.exit(1)
             elif isinstance(filter_dict[key], list):
-                data_df = data_df[data_df[key].isin(filter_dict[key])].dropna().reset_index(drop=True)
+                data_dff = data_dff[data_dff[key].isin(filter_dict[key])].dropna().reset_index(drop=True)
             else:
                 print(f"Error: invalid filter value '{filter_dict[key]}' in filter_dict for key '{key}'.")
                 sys.exit(1)
-        return data_df
+        return data_dff
 
     @staticmethod
     def split_data(data_df : pd.DataFrame, x_cols : list, y_cols : list, test_size : float=0.25, shuffle : bool=True, random_state : int=None, print_stats : bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:

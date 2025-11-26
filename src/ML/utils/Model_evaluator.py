@@ -385,8 +385,6 @@ class Model_evaluator():
                 truth = self.load_numpy_array(path, f"{tag}_truths.npy")
                 self.evaluate_predictions(truth[0], preds[0], "mass", tag)
                 self.evaluate_predictions(truth[1], preds[1], "radius", tag)
-
-        
     
     def check_existing_results(self, tag : str, model_name : str=None, path : str=None) -> bool:
         """
@@ -458,7 +456,6 @@ class Model_evaluator():
             elif filename.endswith(".png"):
                 display(Image(filename=full_path + filename)) # TODO ne fonctionne p-ê que dans un notebook
 
-                 
     def save_numpy_array(self, arr : np.ndarray, path : str, filename : str, model_name : str=None):
         """
         Saves the given numpy array to a .npy file.
