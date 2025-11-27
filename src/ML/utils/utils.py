@@ -51,6 +51,22 @@ def isclose_pandas(df, col_name, value, rel_tol=1e-6):
     df.apply(isclose_pandas_apply, axis=1, args=(col_name, value, bool_index, rel_tol))
     return bool_index
 
+def print_uniques(col_name, df):
+    uniques = df[col_name].unique()
+    uniques.sort()
+    if len(uniques) < 50:
+        print(col_name + " : " + str(uniques))
+    else:
+        print(f"{col_name} : {len(uniques)} unique values, range [{uniques[0]}, {uniques[-1]}]")
+
+def print_uniques_count(col_name, df):
+    uniques = df[col_name].unique()
+    print(f"{col_name} : ")
+    for unique in uniques:
+        print(f"\t{unique} => {np.count_nonzero(df[col_name] == unique)}")
+
+def compare_metrics(path : list[str], ):
+    pass # TODO!
 
 if __name__ == "__main__":
     pass

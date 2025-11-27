@@ -307,15 +307,15 @@ class Model_evaluator():
                 print("Error: plot_dict not provided.")
                 sys.exit(1)
             plot_dict = self.plot_dict
-
-        if time is not None:
-            with open(path + f"{model_name}/{tag}/time_taken.txt", 'w') as file:
-                file.write(f"Time,method\n{time},{train_method}")
         
         metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index')
         if not os.path.exists(path + f"{model_name}/{tag}/"):
             os.makedirs(path + f"{model_name}/{tag}/")
         metrics_df.to_csv(path + f"{model_name}/{tag}/" + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
+
+        if time is not None:
+            with open(path + f"{model_name}/{tag}/time_taken.txt", 'w') as file:
+                file.write(f"Time,method\n{time},{train_method}")
 
         for parameter_name in plot_dict.keys():
             for plot_name in plot_dict[parameter_name].keys():
