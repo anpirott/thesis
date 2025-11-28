@@ -2,6 +2,7 @@ import sys
 import os
 import math
 import numpy as np
+import pandas as pd
 
 
 def sanitize_path(path : str) -> str:
@@ -65,7 +66,17 @@ def print_uniques_count(col_name, df):
     for unique in uniques:
         print(f"\t{unique} => {np.count_nonzero(df[col_name] == unique)}")
 
-def compare_metrics(path : list[str], ):
+def compare_metrics(path : str, model_names : list[str]) -> pd.DataFrame:
+    """
+    Compares the statistics between one or more models in a single table.
+
+    Parameters:
+        path : path to the results folder containing the metrics and images
+        model_names : name of the models which need to be added to the comparison
+    
+    Returns :
+        pd.DataFrame : a detaframe containing the metrics of the models in a single table
+    """
     pass # TODO!
 
 if __name__ == "__main__":

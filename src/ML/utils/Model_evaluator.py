@@ -31,7 +31,7 @@ class Model_evaluator():
         show_model_evaluation : shows various metrics and plots for the given model predictions
         save_model_evaluation : saves various metrics and plots for the given model predictions to a CSV file and images in a directory
     """
-    def __init__(self, model_name : str, model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, # TODO? rajouter le temps dans le dict?
+    def __init__(self, model_name : str, model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, # TODO? rajouter le temps dans le dict?
                  rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
                  predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, qq_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
@@ -40,6 +40,7 @@ class Model_evaluator():
         Parameters:
             model_name (str) : name of the model being evaluated
             model (str) : path to the trained machine learning model
+            physical_model (str) : what physical model was used to train the model (i.e. "MIST" or "PARSEC")
             truth (numpy.ndarray) : true values
             preds (numpy.ndarray) : predicted values
             every bool variable : whether to compute/plot the corresponding metric
@@ -47,6 +48,7 @@ class Model_evaluator():
         """
         self.model_name = model_name
         self.model = model
+        self.physical_model = physical_model
         self.truth = truth
         self.preds = preds
         self.path = sanitize_path(path)
@@ -273,13 +275,14 @@ class Model_evaluator():
                 plt.show()
                 # plot_dict[param][plot_name].show()
     
-    def save_model_evaluation(self,  tag : str, model_name : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None, time : float=None, train_method : str=None):
+    def save_model_evaluation(self,  tag : str, model_name : str=None, physical_model : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None, time : float=None, train_method : str=None):
         """
         Saves various metrics and plots for the given model predictions to a CSV file and images in a directory.
 
         Parameters:
             tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
             model_name (str) : name of the model being evaluated. If set to None, uses the name provided during initialization
+            physical_model (str) : what physical model was used to train the model (i.e. "MIST" or "PARSEC")
             path (str) : the path to the directory in which the metrics will be saved. If set to None, uses the path provided during initialization
             metrics_dict (dict) : dictionary containing the metrics to be saved
             plot_dict (dict) : dictionary containing the plots to be saved
@@ -289,6 +292,11 @@ class Model_evaluator():
                 print("Error: model_name not provided.")
                 sys.exit(1)
             model_name = self.model_name
+        if physical_model is None:
+            if self.physical_model is None:
+                print("Error: physical_model not provided.")
+                sys.exit(1)
+            physical_model = self.physical_model
         if path is None:
             if self.path is None:
                 print("Error: path not provided.")
@@ -308,18 +316,20 @@ class Model_evaluator():
                 sys.exit(1)
             plot_dict = self.plot_dict
         
+        full_path = path + f"{model_name}/{physical_model}/{tag}/"
+        
         metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index')
-        if not os.path.exists(path + f"{model_name}/{tag}/"):
-            os.makedirs(path + f"{model_name}/{tag}/")
-        metrics_df.to_csv(path + f"{model_name}/{tag}/" + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
+        if not os.path.exists(full_path):
+            os.makedirs(full_path)
+        metrics_df.to_csv(full_path + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
 
         if time is not None:
-            with open(path + f"{model_name}/{tag}/time_taken.txt", 'w') as file:
+            with open(full_path + "time_taken.txt", 'w') as file:
                 file.write(f"Time,method\n{time},{train_method}")
 
         for parameter_name in plot_dict.keys():
             for plot_name in plot_dict[parameter_name].keys():
-                plot_dict[parameter_name][plot_name].savefig(path + f"{self.model_name}/{tag}/" + f"{parameter_name}_{plot_name}.png")
+                plot_dict[parameter_name][plot_name].savefig(full_path + f"{parameter_name}_{plot_name}.png")
 
     # TODO! ne fonctionne pas, pas encore fini
     def evaluate_model(self, model, X_test : np.ndarray, y_test : np.ndarray):
