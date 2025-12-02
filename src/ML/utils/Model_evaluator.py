@@ -396,7 +396,7 @@ class Model_evaluator():
                 print("Error: cannot override when using existing predictions. Set either override or use_preds to False.")
                 sys.exit(1)
             elif not override:
-                if not self.check_existing_results(tag): # TODO? faire une fonctions qui check si spécifiquement les predictions existent
+                if not os.path.exists(path + f"{self.model_name}"): # TODO? utilisation de self.model_name, si pas spécifié ça créé un problème
                     print("Error: predictions do not exist.")
                     sys.exit(1)
                 preds = self.load_numpy_array(path, f"{tag}_predictions.npy")
@@ -426,6 +426,7 @@ class Model_evaluator():
             path = self.path
         else:
             path = sanitize_path(path)
+        
         if os.path.exists(path + f"{model_name}/{tag}/metrics.csv"):
             return True
         return False
@@ -489,7 +490,7 @@ class Model_evaluator():
                 sys.exit(1)
             model_name = self.model_name
         path = sanitize_path(path)
-        full_path = path + model_name + "/"
+        full_path = path + f"{model_name}/{self.physical_model}/" # TODO? pas modulable mais pas le temps de le faire maintenant
         if not os.path.exists(full_path):
             os.makedirs(full_path)
         np.savetxt(full_path + filename, arr)
@@ -509,7 +510,7 @@ class Model_evaluator():
                 sys.exit(1)
             model_name = self.model_name
         path = sanitize_path(path)
-        full_path = path + model_name + "/"
+        full_path = path + f"{model_name}/{self.physical_model}/"
         return np.loadtxt(full_path + filename)
 
 

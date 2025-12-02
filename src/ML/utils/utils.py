@@ -69,6 +69,21 @@ def print_uniques_count(col_name, df):
     for unique in uniques:
         print(f"\t{unique} => {np.count_nonzero(df[col_name] == unique)}")
 
+def print_all_uniques(df):
+    for col_name in df.columns:
+        if col_name == "phase" or col_name == "label" or col_name == "metallicity":
+            str_data = ""
+            for value in df[col_name].unique():
+                str_data = str_data + str(value) + ", "
+            str_data = str_data[:-2]
+            print(f"Values in {col_name} column : {str_data} ")
+        else:
+            print(f"Range in {col_name} column : {min(df[col_name])} - {max(df[col_name])}")
+            print(f"Mean value in {col_name} column : {df[col_name].mean()}")
+            print(f"Median value in {col_name} column : {df[col_name].median()}")
+        print()
+    
+
 def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None) -> pd.DataFrame:
     """
     Compares the statistics between one or more models in a single table and displays it. # TODO? aussi le return?
