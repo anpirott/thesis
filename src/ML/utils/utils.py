@@ -78,9 +78,7 @@ def print_all_uniques(df):
             str_data = str_data[:-2]
             print(f"Values in {col_name} column : {str_data} ")
         else:
-            print(f"Range in {col_name} column : {min(df[col_name])} - {max(df[col_name])}")
-            print(f"Mean value in {col_name} column : {df[col_name].mean()}")
-            print(f"Median value in {col_name} column : {df[col_name].median()}")
+            print(f"{col_name}  : Range : {round(min(df[col_name]), 2)} - {round(max(df[col_name]), 4)}, Mean : {round(df[col_name].mean(), 4)}, Median : {round(df[col_name].median(), 4)}")
         print()
     
 
