@@ -137,7 +137,7 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
 
     if data_filters is None:
         data_filters = []
-        new_path = path + f"{model_names[0]}/{physical_models[0]}/"
+        new_path = path + f"{model_names[0]}/{physical_models[0]}/" # TODO je pense que ça ne fonctionne pas si je n'ai pas les mêmes filtres entre PARSEC et MIST
         for file_or_directory in os.listdir(new_path):
             if os.path.isdir(new_path + f"{file_or_directory}"):
                 data_filters.append(file_or_directory)

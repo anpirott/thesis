@@ -201,7 +201,7 @@ class Model_evaluator():
             self.plot_dict[parameter_name]['residuals_boxplot_no_log'] = plotted_boxplot_no_log
         if self.residuals_boxplot: # TODO rajouter dans le mémoire si je le garde
             # le IQR se calcule sur les points de données, pas sur les pourcentages (https://www.geeksforgeeks.org/machine-learning/box-plot/)
-            plotted_boxplot_log = plt.figure(figsize=(6,6)) 
+            plotted_boxplot_log = plt.figure(figsize=(6,6)) # TODO? erreur dans ce boxplot quand j'utilise PARSEC
             sns.boxplot(y=absolute_residuals, log_scale=True, fliersize=2, whis=(10,90)) # change les whiskers pour qu'ils soient à des percentiles précis
             plt.ylabel('Residuals') # TODO p-ê une erreur, ou alors juste à cause des valeurs du test
             plt.title(f'Box Plot of Residuals for {parameter_name}')
