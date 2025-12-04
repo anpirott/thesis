@@ -119,6 +119,9 @@ class Model_evaluator():
             self.qq_plot = qq_plot
     
     # TODO décrire tous les plots
+
+    # TODO rajouter un plot qui montre plus en détail les hautes erreurs (jsp comment : les pourcentiles?, un cut sur les données pour voir les X plus grandes?, ...)
+    # TODO faire un plot qui montre l'erreur proportionnelement à la valeur qu'il fallait prédire
     def calculate_model_evaluation(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None) -> tuple[dict, dict]:
         """
         Calculates various metrics and plots for the given model predictions.
