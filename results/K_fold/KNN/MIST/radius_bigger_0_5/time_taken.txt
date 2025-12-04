@@ -1,2 +1,0 @@
-Time,method
-9.52528977394104,K_fold
