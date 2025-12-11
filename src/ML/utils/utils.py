@@ -82,7 +82,7 @@ def print_all_uniques(df):
         print()
     
 
-def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None) -> pd.DataFrame:
+def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None, value_rounding : int=-1) -> pd.DataFrame:
     """
     Compares the statistics between one or more models in a single table and displays it. # TODO? aussi le return?
     The path to the metrics and images needs to follow this hierarchy : path/to/results/(training_type/)model_name/physical_model/data_filter/
@@ -160,20 +160,26 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
                         dict_reader = csv.DictReader(metrics_file) # retrieving the metrics
 
                         for metrics_dict in list(dict_reader):
+                            metrics_dict_copy = copy.deepcopy(metrics_dict)
                             # creating a nicer way to display the percentiles
-                            percentiles = eval(metrics_dict.pop("Percentiles"))
+                            percentiles = eval(metrics_dict_copy.pop("Percentiles"))
                             str_percentiles = ""
                             for thresh, value in percentiles.items():
                                 str_percentiles += f" {thresh} : {round(value, 5)} /"
                             str_percentiles = str_percentiles[:-1]
-                            metrics_dict["Percentiles"] = str_percentiles
+                            metrics_dict_copy["Percentiles"] = str_percentiles
 
-                            metrics_dict["time"] = round(float(lines[1].split(',')[0]), 5) # adding the time to the metrics dictionnary
+                            metrics_dict_copy["time"] = lines[1].split(',')[0] # adding the time to the metrics dictionnary
 
-                            output_parameter = metrics_dict.pop("")
+                            output_parameter = metrics_dict_copy.pop("")
+                            
+                            if value_rounding >= 1:
+                                for key in metrics_dict_copy.keys():
+                                    if key != "Percentiles":
+                                        metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
 
                             if output_parameter in output_parameters: # adding the metrics dictionnary
-                                results_dict[model_name][physical_model][data_filter][output_parameter] = copy.deepcopy(metrics_dict)
+                                results_dict[model_name][physical_model][data_filter][output_parameter] = metrics_dict_copy
     
     # creating the dataframe as is shown in the docstring
     rows = []

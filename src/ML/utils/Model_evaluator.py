@@ -31,7 +31,7 @@ class Model_evaluator():
         show_model_evaluation : shows various metrics and plots for the given model predictions
         save_model_evaluation : saves various metrics and plots for the given model predictions to a CSV file and images in a directory
     """
-    def __init__(self, model_name : str, model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, # TODO? rajouter le temps dans le dict?
+    def __init__(self, model_name : str, output_parameters : list[str], model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, # TODO? rajouter le temps dans le dict?
                  rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
                  predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, qq_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
@@ -39,6 +39,8 @@ class Model_evaluator():
 
         Parameters:
             model_name (str) : name of the model being evaluated
+            output_parameters (list[str]) : list containing the name of the output parameters. To match the right data to the output name, 
+                                            the list needs to be in the same order as when splitting the data into the train and test set.
             model (str) : path to the trained machine learning model
             physical_model (str) : what physical model was used to train the model (i.e. "MIST" or "PARSEC")
             truth (numpy.ndarray) : true values
@@ -47,6 +49,7 @@ class Model_evaluator():
             percentile (list of int) : list of percentiles to compute
         """
         self.model_name = model_name
+        self.output_parameters = output_parameters
         self.model = model
         self.physical_model = physical_model
         self.truth = truth
@@ -392,8 +395,8 @@ class Model_evaluator():
                 end = time.time()
                 self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
                 self.save_numpy_array(truth, path, f"{tag}_truths.npy")
-                self.evaluate_predictions(truth[0], preds[0], "mass", tag, time=end-start, train_method="K_fold") # TODO? pas de façon de le faire dans un loop parce qu'on ne connait pas le paramètre (mass ou radius)
-                self.evaluate_predictions(truth[1], preds[1], "radius", tag, time=end-start, train_method="K_fold") # TODO? rajouter une liste des parameter_name à la classe?
+                for i, output_param in enumerate(self.output_parameters):
+                    self.evaluate_predictions(truth[i], preds[i], output_param, tag, time=end-start, train_method="K_fold")
         if use_preds:
             if override:
                 print("Error: cannot override when using existing predictions. Set either override or use_preds to False.")
@@ -404,8 +407,8 @@ class Model_evaluator():
                     sys.exit(1)
                 preds = self.load_numpy_array(path, f"{tag}_predictions.npy")
                 truth = self.load_numpy_array(path, f"{tag}_truths.npy")
-                self.evaluate_predictions(truth[0], preds[0], "mass", tag)
-                self.evaluate_predictions(truth[1], preds[1], "radius", tag)
+                for i, output_param in enumerate(self.output_parameters):
+                    self.evaluate_predictions(truth[i], preds[i], output_param, tag)
     
     def check_existing_results(self, tag : str, model_name : str=None, path : str=None) -> bool:
         """

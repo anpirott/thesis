@@ -75,34 +75,32 @@ class Data_preparator():
             tuple of four numpy.ndarrays : the training features (X_train), testing features (X_test), training targets (y_train) and testing targets (y_test)
         """
         X = data_df[x_cols].to_numpy()
-        y = data_df[y_cols].to_numpy()
+        y = data_df[y_cols].to_numpy() # the output parameters follow the same order as the given list
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state, shuffle=shuffle)
 
         if print_stats:
             print("Training set statistics:")
-            Data_preparator.show_data_stats(y_train, "train")
+            Data_preparator.show_data_stats(y_train, "train", y_cols)
             print("Testing set statistics:")
-            Data_preparator.show_data_stats(y_test, "test")
+            Data_preparator.show_data_stats(y_test, "test", y_cols)
 
         return X_train, X_test, y_train, y_test
     
     @staticmethod    
-    def show_data_stats(data : np.ndarray, set_type : str): # TODO? changer pour que ça fasse pour un nombre indéterminé de paramètres (pas juste mass et radius)
+    def show_data_stats(data : np.ndarray, set_type : str, output_parameters : list[str]):
         """
         Shows some statistics of the given data.
 
         Parameters:
             data (numpy.ndarray) : data to be analyzed
             set (str) : name of the dataset (e.g. "train" or "test")
+            output_parameters (list[str]) : list containing the name of the output parameters
         """
-        print(f"Range in {set_type} data for the mass parameter : {min(data[:, 0])} - {max(data[:, 0])}")
-        print(f"Median value in {set_type} data for the mass parameter: {np.median(data[:, 0])}")
-        print(f"Mean value in {set_type} data for the mass parameter: {np.mean(data[:, 0])}")
-
-        print(f"Range in {set_type} data for the radius parameter : {min(data[:, 1])} - {max(data[:, 1])}")
-        print(f"Median value in {set_type} data for the radius parameter: {np.median(data[:, 1])}")
-        print(f"Mean value in {set_type} data for the radius parameter: {np.mean(data[:, 1])}\n")
+        for i, output_param in enumerate(output_parameters):
+            print(f"Range in {set_type} data for the {output_param} parameter : {min(data[:, i])} - {max(data[:, i])}")
+            print(f"Median value in {set_type} data for the {output_param} parameter: {np.median(data[:, i])}")
+            print(f"Mean value in {set_type} data for the {output_param} parameter: {np.mean(data[:, i])}\n")
     
     @staticmethod
     def pca_preparation(X_train : np.ndarray, X_test : np.ndarray, verbose : bool=False) -> tuple[np.ndarray, np.ndarray]:
