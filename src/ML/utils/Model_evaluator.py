@@ -7,6 +7,7 @@ import sys
 import os
 import time
 import csv
+import copy
 from collections.abc import Callable
 from IPython.display import Image
 from IPython.display import display
@@ -125,7 +126,7 @@ class Model_evaluator():
 
     # TODO rajouter un plot qui montre plus en détail les hautes erreurs (jsp comment : les pourcentiles?, un cut sur les données pour voir les X plus grandes?, ...)
     # TODO faire un plot qui montre l'erreur proportionnelement à la valeur qu'il fallait prédire
-    def calculate_model_evaluation(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None) -> tuple[dict, dict]:
+    def calculate_model_evaluation(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None) -> tuple[dict, dict]: #, metrics_dict : dict=None, plot_dict : dict=None) -> tuple[dict, dict]:
         """
         Calculates various metrics and plots for the given model predictions.
 
@@ -151,6 +152,9 @@ class Model_evaluator():
         residuals = preds - truth
         absolute_residuals = np.abs(preds - truth)
 
+        # if metrics_dict is None: # TODO? pour améliorer le code et pas tjs appeler self.metrics_dict, pas le temps pour le moment
+        #     metrics_dict = copy.deepcopy(self.metrics_dict)
+
         self.metrics_dict[parameter_name] = dict() # TODO? p-ê gérer si ça existe déjà
 
         if self.rve:
@@ -170,6 +174,9 @@ class Model_evaluator():
             for p in self.percentile:
                 if p >= 0 and p <= 100:
                     self.metrics_dict[parameter_name]['Percentiles'][p] = np.percentile(absolute_residuals, p)
+
+        # if plot_dict is None:  # TODO? pour améliorer le code et pas tjs appeler self.metrics_dict, pas le temps pour le moment
+        #     plot_dict = copy.deepcopy(self.plot_dict)
 
         self.plot_dict[parameter_name] = dict() # TODO? gérer si ça existe déjà
 
@@ -347,12 +354,13 @@ class Model_evaluator():
             X_test (np.ndarray) : dataset of the test features
             y_test (np.ndarray) : dataset of the test targets
         """
-        y_pred = model.predict(X_test)
-        for i, col in enumerate(y_test.columns):
-            self.calculate_model_evaluation(col, y_test[col].values, y_pred[:, i])
-            self.show_model_evaluation(col)
+        # y_pred = model.predict(X_test)
+        # for i, col in enumerate(y_test.columns):
+        #     self.calculate_model_evaluation(col, y_test[col].values, y_pred[:, i])
+        #     self.show_model_evaluation(col)
+        pass
     
-    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, tag : str, save : bool=True, time : float=None, train_method : str=None):
+    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, tag : str, save : bool=True, time : float=None, train_method : str=None, show : bool=True):
         """
         Evaluates the given predictions and prints the metrics.
 
@@ -364,14 +372,16 @@ class Model_evaluator():
             save (bool) : whether to save the metrics and plots
             time (float) : time taken for the model to have been trained
             train_method (str) : what method was used to train the model (i.e. "K_fold" or "normal")
+            show (bool) : whether to show the metrics and plots
         """
         self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds)
+        # self.metrics_dict, self.plot_dict = self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds) # TODO? si je change le code comme le todo dans la fct
         self.show_model_evaluation(parameter_name)
 
         if save:
             self.save_model_evaluation(tag=tag, time=time, train_method=train_method)
     
-    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool = False, **kwargs):
+    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool = False, show_depth=True,**kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
 

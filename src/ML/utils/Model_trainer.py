@@ -18,7 +18,7 @@ class Model_trainer():
     # TODO? rajouter le calcul du temps et le rajouter dans le csv
     @staticmethod
     def Kfold_pipeline(model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, n_splits : int=10, 
-                       shuffle : bool=True, random_state : int=12, **kwargs) -> tuple[list, list]:
+                       shuffle : bool=True, random_state : int=12, verbose : bool=True, **kwargs) -> tuple[list, list]:
         """
         Performs K-fold cross-validation on the given model and training data.
 
@@ -29,6 +29,7 @@ class Model_trainer():
             n_splits (int) : number of folds for cross-validation
             shuffle (bool) : whether to shuffle the data before splitting into folds
             random_state (int) : random seed for shuffling the data
+            verbose (bool) : whether information during the training is shown or not
         
         Returns:
             tuple of two lists : a tuple containing the true values for each target across all folds and a tuple containing the predicted values for each target across all folds
@@ -38,10 +39,12 @@ class Model_trainer():
 
         kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state) # TODO? si random_state=None je fais une ligne à part
         counter = 0
-        print("split", end=' ')
+        if verbose:
+            print("split", end=' ')
         for train_index, test_index in kf.split(X_train_data):
             counter += 1
-            print(str(counter), end=' ')
+            if verbose:
+                print(str(counter), end=' ')
             X_train, X_test = X_train_data[train_index], X_train_data[test_index]
             y_train, y_test = y_train_data[train_index], y_train_data[test_index]
 
@@ -51,6 +54,12 @@ class Model_trainer():
                 plt.plot(range(len(mdl.loss_curve_)), mdl.loss_curve_)
                 print(mdl.best_loss_)
             fold_preds = mdl.predict(X_test)
+
+            # if show_depth:
+            #     max_depth = list()
+            #     for tree in mdl.estimators_:
+            #         max_depth.append(tree.tree_.max_depth)
+            #     print("avg max depth %0.1f" % (sum(max_depth) / len(max_depth)))
 
             for i in range(y_train_data.shape[1]):
                 if truth[i] is None:
