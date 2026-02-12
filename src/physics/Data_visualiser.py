@@ -24,6 +24,57 @@ class Data_visualiser():
         self.phase_dict_PARSEC = {0 : "PMS", 1 : "MS", 2 : "SGB", 3 : "RGB", 4 : "CHeB",  5 : "CHeB_blue",  6 : "CHeB_red", 7 : "EAGB", 8 : "TPAGB", 9 : "postAGB"}
         self.all_metallicities_PARSEC = [-2.75, -2.5, -2.25, -2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5]
 
+    def plot_isochrone(self, ages : list[float], metallicities : list[float], x_values : str, y_values : str, x_label : str, y_label : str,
+                       iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):
+        if iso_df is None:
+            iso_df = self.iso_df
+        if physical_model is None:
+            physical_model = self.physical_model
+        if len(ages) == 0:
+            if physical_model == "MIST":
+                ages = iso_df["log10_isochrone_age_yr"].unique()
+            elif physical_model == "PARSEC":
+                ages = iso_df["logAge"].unique()
+        if len(metallicities) == 0:
+            if physical_model == "MIST":
+                metallicities = self.all_metallicities_MIST
+            elif physical_model == "PARSEC":
+                metallicities = self.all_metallicities_PARSEC
+        if x_lim is None:
+            x_lim = (5.7, 3.3)
+        
+        if physical_model == "MIST":
+            unique_phases = iso_df["phase"].unique()
+            phase_dict = {key: self.phase_dict_MIST[key] for key in unique_phases} # only keeps the values for the phases the dataframe actually contains
+            c_dict = {key: self.c_dict_MIST[key] for key in unique_phases}
+        elif physical_model == "PARSEC":
+            unique_phases = iso_df["label"].unique()
+            phase_dict = {key: self.phase_dict_PARSEC[key] for key in unique_phases} # only keeps the values for the phases the dataframe actually contains
+            c_dict = {key: self.c_dict_PARSEC[key] for key in unique_phases}
+
+        for metallicity in metallicities:
+            for phase in unique_phases:
+                for age in ages:
+                    if physical_model == "MIST":
+                        x_axis = iso_df[(iso_df["phase"]==phase) & (iso_df["metallicity"]==metallicity) & (iso_df["log10_isochrone_age_yr"]==age)][x_values]
+                        y_axis = iso_df[(iso_df["phase"]==phase) & (iso_df["metallicity"]==metallicity) & (iso_df["log10_isochrone_age_yr"]==age)][y_values]                        
+                        plt.plot(x_axis, y_axis, c=c_dict[phase])
+                    elif physical_model == "PARSEC":
+                        x_axis = iso_df[(iso_df["label"]==phase) & (iso_df["metallicity"]==metallicity) & (iso_df["logAge"]==age)][x_values]
+                        y_axis = iso_df[(iso_df["label"]==phase) & (iso_df["metallicity"]==metallicity) & (iso_df["logAge"]==age)][y_values]
+                        plt.plot(x_axis, y_axis, c=c_dict[phase])
+                
+            plt.xlim(x_lim[0], x_lim[1])
+            if y_lim is not None:
+                plt.ylim(y_lim[0], y_lim[1])
+            plt.xlabel(x_label)
+            plt.ylabel(y_label)
+            plt.legend(title="Phases", fontsize="small", 
+                    handles = [mlines.Line2D([], [], color=c_dict[key], label=f"{phase_dict[key]}") for key in c_dict.keys()])
+            plt.title(f"Metallicity = {metallicity}")
+            plt.show()
+    
+    
     # TODO? deux fonctions en une avec un paramètre pour savoir si je prends le log_L ou le log_g
     def plot_HR(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):
         if iso_df is None:

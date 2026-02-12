@@ -56,6 +56,11 @@ class Data_preparator():
                 print(f"Error: invalid filter value '{filter_dict[key]}' in filter_dict for key '{key}'.")
                 sys.exit(1)
         return data_dff
+    
+    # @staticmethod
+    # def scale_data(data_df : pd.DataFrame, scaler):
+    #     # TODO?
+    #     return
 
     @staticmethod
     def split_data(data_df : pd.DataFrame, x_cols : list, y_cols : list, test_size : float=0.25, shuffle : bool=True, random_state : int=None, print_stats : bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
