@@ -11,7 +11,7 @@ import pickle
 import joblib
 import sys
 
-from ML.utils.Iso_data_handler import Iso_data_handler
+from physics.Iso_data_handler import Iso_data_handler
 
 
 def first_method(age, metallicity, log_Teff, log_g, q, primary_mdl_path="model/primary_XGB.pkl", secondary_mdl_path="model/secondary_XGB.pkl"):
@@ -28,6 +28,7 @@ def first_method(age, metallicity, log_Teff, log_g, q, primary_mdl_path="model/p
         secondary_mdl_path (str) : path to the trained secondary model
 
     Returns:
+        star_mass1 (float) : 
         log_R1 (float) : log10 of the radius of the primary star
         log_Teff2 (float) : log10 of the effective temperature of the secondary star
         log_g2 (float) : log10 of the surface gravity of the secondary star
@@ -39,12 +40,12 @@ def first_method(age, metallicity, log_Teff, log_g, q, primary_mdl_path="model/p
 
     # Predict the mass and radius of the primary star
     star_mass1, log_R1 = primary_model.predict([[age, metallicity, log_Teff, log_g]]).flatten()
-    star_mass2 = star_mass1 * q
+    star_mass2 = star_mass1 * q # TODO! gros souci si on demande de donner une valuer qui n'est pas possible dans une isochrone
 
     # Predict the effective temperature, surface gravity and radius of the secondary star
     log_Teff2, log_g2, log_R2 = secondary_model.predict([[age, metallicity, star_mass2, log_R1]]).flatten()
 
-    return log_R1, log_Teff2, log_g2, log_R2
+    return star_mass1, log_R1, log_Teff2, log_g2, log_R2
 
 
 
