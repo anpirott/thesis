@@ -33,19 +33,6 @@ def second_method_MIST(age, metallicity, log_Teff, log_g, q, ml_mdl_path="model/
         log_g2 (float) : log10 of the surface gravity of the secondary star
         log_R2 (float) : log10 of the radius of the secondary star
     """
-    # # Load the models
-    # primary_model = joblib.load(primary_mdl_path)
-    # secondary_model = joblib.load(secondary_mdl_path)
-
-    # # Predict the mass and radius of the primary star
-    # star_mass1, log_R1 = primary_model.predict([[age, metallicity, log_Teff, log_g]]).flatten()
-    # star_mass2 = star_mass1 * q
-
-    # # Predict the effective temperature, surface gravity and radius of the secondary star
-    # log_Teff2, log_g2, log_R2 = secondary_model.predict([[age, metallicity, star_mass2, log_R1]]).flatten()
-
-    # return log_R1, log_Teff2, log_g2, log_R2
-
     # load the model
     ml_model = joblib.load(ml_mdl_path)
 
@@ -54,6 +41,16 @@ def second_method_MIST(age, metallicity, log_Teff, log_g, q, ml_mdl_path="model/
 
     # calculate the desired mass of the secondary star
     desired_star_mass2 = star_mass1 * q
+
+    # iso_handler = Iso_data_handler(path_to_data, 
+    #                                 ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'phase', 'metallicity', 'star_mass', 'log_R'], 
+    #                                 physical_model, reclassify=True)
+
+    # iso_df = iso_handler.get_isochrone_dataframe()
+
+    # phase_filtered_iso_df = Data_preparator.filter_data(iso_df, {'phase':[0, 2, 3, 4, 5]})
+    # single_isochrone = phase_filtered_iso_df.loc[((phase_filtered_iso_df['metallicity'] == metallicity) & (phase_filtered_iso_df['log10_isochrone_age_yr'] == age))].reset_index()
+
 
     # set loop conditions
     check_star_mass = False
@@ -78,10 +75,7 @@ def second_method_MIST(age, metallicity, log_Teff, log_g, q, ml_mdl_path="model/
         if log_R2 < log_R1:
             check_radius = True
 
-
-
-
-
+    return log_R1, log_Teff2, log_g2, log_R2
 
 
 if __name__ == "__main__":

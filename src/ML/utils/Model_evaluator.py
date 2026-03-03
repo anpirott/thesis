@@ -34,7 +34,8 @@ class Model_evaluator():
     """
     def __init__(self, model_name : str, output_parameters : list[str], model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, # TODO? rajouter le temps dans le dict?
                  rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
-                 predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, qq_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
+                 predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, qq_plot : bool=True, 
+                 preds_plot : bool=True, neg_preds_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
         Initializes the Model_evaluator class.
 
@@ -69,6 +70,8 @@ class Model_evaluator():
         self.residuals_boxplot = residuals_boxplot
         self.residuals_histogram = residuals_histogram
         self.qq_plot = qq_plot
+        self.preds_plot = preds_plot
+        self.neg_preds_plot = neg_preds_plot
 
         self.metrics_dict = dict()
         self.plot_dict = dict()
@@ -235,6 +238,29 @@ class Model_evaluator():
             plt.title('Normal Q-Q plot')
             plt.grid(True)
             self.plot_dict[parameter_name]['qq_plot'] = plotted_qq
+        if self.preds_plot:
+            plotted_preds = plt.figure(figsize=(6,6))
+            # plt.scatter([i for i in range(1, len(preds)+1, 1)], preds, alpha=0.01) # TODO? faire un histogramme à la place
+            # plt.xlabel("Index")
+            # plt.ylabel("Prediction")
+            # plt.title("Scatter plot of the predictions")
+            plt.hist(preds, bins=50, log=True)
+            plt.xlabel('Predictions')
+            plt.ylabel('Frequency')
+            plt.title(f'Histogram of predictions for {parameter_name}')
+            self.plot_dict[parameter_name]['preds_plot'] = plotted_preds
+        if self.neg_preds_plot:
+            mask = preds <= 0  # [False, True, False, True, False, True, False, True]
+            filtered_preds = preds[mask]
+            if len(filtered_preds) == 0:
+                print("no negative values")
+            else:
+                plotted_neg_preds = plt.figure(figsize=(6,6))
+                plt.hist(filtered_preds, bins=20)
+                plt.xlabel('Predictions')
+                plt.ylabel('Frequency')
+                plt.title(f'Histogram of negative predictions for {parameter_name}')
+                self.plot_dict[parameter_name]['preds_plot'] = plotted_neg_preds
         
         return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
 

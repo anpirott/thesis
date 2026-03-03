@@ -40,7 +40,7 @@ def first_method(age, metallicity, log_Teff, log_g, q, primary_mdl_path="model/p
 
     # Predict the mass and radius of the primary star
     star_mass1, log_R1 = primary_model.predict([[age, metallicity, log_Teff, log_g]]).flatten()
-    star_mass2 = star_mass1 * q # TODO! gros souci si on demande de donner une valuer qui n'est pas possible dans une isochrone
+    star_mass2 = star_mass1 * q # TODO! gros souci si on demande de donner une valeur qui n'est pas possible dans une isochrone
 
     # Predict the effective temperature, surface gravity and radius of the secondary star
     log_Teff2, log_g2, log_R2 = secondary_model.predict([[age, metallicity, star_mass2, log_R1]]).flatten()
