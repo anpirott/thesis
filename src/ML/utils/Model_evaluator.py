@@ -407,7 +407,8 @@ class Model_evaluator():
         if save:
             self.save_model_evaluation(tag=tag, time=time, train_method=train_method)
     
-    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool = False, show_depth=True,**kwargs):
+    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, n_splits : int=10, random_state : int=12, 
+                               override : bool=False, use_preds : bool = False, show_depth=True, save=True, **kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
 
@@ -419,6 +420,7 @@ class Model_evaluator():
             path (str) : path to the directory in which the predictions and truths will be saved
             override (bool) : whether to override existing results or use the existing ones
             use_preds (bool) : whether to use existing predictions instead of generating new ones
+            save (bool) : wether or not to save the results
             **kwargs : additional arguments which will be passed to the model during training
         """
         print(f"\n{tag} train data :")
@@ -429,10 +431,11 @@ class Model_evaluator():
                 start = time.time()
                 truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, n_splits=n_splits, random_state=random_state, **kwargs)
                 end = time.time()
-                self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
-                self.save_numpy_array(truth, path, f"{tag}_truths.npy")
+                if save:
+                    self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
+                    self.save_numpy_array(truth, path, f"{tag}_truths.npy")
                 for i, output_param in enumerate(self.output_parameters):
-                    self.evaluate_predictions(truth[i], preds[i], output_param, tag, time=end-start, train_method="K_fold")
+                    self.evaluate_predictions(truth[i], preds[i], output_param, tag, time=end-start, train_method="K_fold", save=save)
         if use_preds:
             if override:
                 print("Error: cannot override when using existing predictions. Set either override or use_preds to False.")
@@ -444,7 +447,7 @@ class Model_evaluator():
                 preds = self.load_numpy_array(path, f"{tag}_predictions.npy")
                 truth = self.load_numpy_array(path, f"{tag}_truths.npy")
                 for i, output_param in enumerate(self.output_parameters):
-                    self.evaluate_predictions(truth[i], preds[i], output_param, tag)
+                    self.evaluate_predictions(truth[i], preds[i], output_param, tag, save=save)
     
     def check_existing_results(self, tag : str, model_name : str=None, path : str=None) -> bool:
         """
