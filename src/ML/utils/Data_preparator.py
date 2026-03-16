@@ -63,7 +63,7 @@ class Data_preparator():
     #     return
 
     @staticmethod
-    def split_data(data_df : pd.DataFrame, x_cols : list, y_cols : list, test_size : float=0.25, shuffle : bool=True, random_state : int=None, print_stats : bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def split_data(data_df : pd.DataFrame, x_cols : list, y_cols : list, categories_cols : list, test_size : float=0.25, shuffle : bool=True, random_state : int=None, print_stats : bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Splits the given dataframe into training and testing sets.
 
@@ -71,18 +71,23 @@ class Data_preparator():
             data_df (pandas.DataFrame) : dataframe to be split
             x_cols (list) : list of column names to be used as features
             y_cols (list) : list of column names to be used as targets
+            categories_cols (list) : list of column names to be used as categories, these categories can be used to group certain values througout the workflow
             test_size (float) : proportion of the data to be used as test set
             shuffle (bool) : whether to shuffle the data before splitting
             random_state (int) : random seed for shuffling the data
             print_stats (bool) : whether to print some statistics of the train and test sets
         
         Returns:
-            tuple of four numpy.ndarrays : the training features (X_train), testing features (X_test), training targets (y_train) and testing targets (y_test)
+            tuple of six numpy.ndarrays : the training features (X_train), testing features (X_test), training targets (y_train), testing targets (y_test),
+                                          the training categories (categories_train) and testing categories (categories_test)
         """
         X = data_df[x_cols].to_numpy()
         y = data_df[y_cols].to_numpy() # the output parameters follow the same order as the given list
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state, shuffle=shuffle)
+        categories = data_df[categories_cols].to_numpy()
+        # if categories_cols is None:
+        #     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state, shuffle=shuffle)
+        # else:
+        X_train, X_test, y_train, y_test, categories_train, categories_test = train_test_split(X, y, categories, test_size=test_size, random_state=random_state, shuffle=shuffle)
 
         if print_stats:
             print("Training set statistics:")
@@ -90,7 +95,7 @@ class Data_preparator():
             print("Testing set statistics:")
             Data_preparator.show_data_stats(y_test, "test", y_cols)
 
-        return X_train, X_test, y_train, y_test
+        return X_train, X_test, y_train, y_test, categories_train, categories_test
     
     @staticmethod    
     def show_data_stats(data : np.ndarray, set_type : str, output_parameters : list[str]):

@@ -32,8 +32,8 @@ class Model_evaluator():
         show_model_evaluation : shows various metrics and plots for the given model predictions
         save_model_evaluation : saves various metrics and plots for the given model predictions to a CSV file and images in a directory
     """
-    def __init__(self, model_name : str, output_parameters : list[str], model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, path : str=None, rve : bool=True, # TODO? rajouter le temps dans le dict?
-                 rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
+    def __init__(self, model_name : str, output_parameters : list[str], model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, categories : np.ndarray=None, # TODO? rajouter le temps dans le dict?
+                 path : str=None, rve : bool=True, rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
                  predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, qq_plot : bool=True, 
                  preds_plot : bool=True, neg_preds_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
@@ -47,6 +47,7 @@ class Model_evaluator():
             physical_model (str) : what physical model was used to train the model (i.e. "MIST" or "PARSEC")
             truth (numpy.ndarray) : true values
             preds (numpy.ndarray) : predicted values
+            categories (numpy.ndarray) : categories of the values
             every bool variable : whether to compute/plot the corresponding metric
             percentile (list of int) : list of percentiles to compute
         """
@@ -56,6 +57,7 @@ class Model_evaluator():
         self.physical_model = physical_model
         self.truth = truth
         self.preds = preds
+        self.categories = categories
         self.path = sanitize_path(path)
 
         self.rve = rve
@@ -124,12 +126,12 @@ class Model_evaluator():
             self.residuals_histogram = residuals_histogram
         if qq_plot is not None:
             self.qq_plot = qq_plot
-    
+
     # TODO décrire tous les plots
 
     # TODO rajouter un plot qui montre plus en détail les hautes erreurs (jsp comment : les pourcentiles?, un cut sur les données pour voir les X plus grandes?, ...)
     # TODO faire un plot qui montre l'erreur proportionnelement à la valeur qu'il fallait prédire
-    def calculate_model_evaluation(self, parameter_name : str, truth : np.ndarray=None, preds : np.ndarray=None) -> tuple[dict, dict]: #, metrics_dict : dict=None, plot_dict : dict=None) -> tuple[dict, dict]:
+    def calculate_model_evaluation(self, parameter_name : str, categories_name : list[str], truth : np.ndarray=None, preds : np.ndarray=None, categories : np.ndarray=None) -> tuple[dict, dict]: #, metrics_dict : dict=None, plot_dict : dict=None) -> tuple[dict, dict]:
         """
         Calculates various metrics and plots for the given model predictions.
 
@@ -137,6 +139,7 @@ class Model_evaluator():
             parameter_name (str) : name of the parameter being evaluated
             truth (numpy.ndarray) : true values
             preds (numpy.ndarray) : predicted values
+            categories (numpy.ndarray) : categories of the values
         
         Returns:
             tuple of two dicts : a dictionary containing the calculated metrics and a dictionary containing the generated plots
@@ -151,37 +154,29 @@ class Model_evaluator():
                 print("Error: predicted values not provided.")
                 sys.exit(1)
             preds = self.preds
-        
+        if categories is None:
+            if self.categories is None:
+                print("Error: predicted values not provided.")
+                sys.exit(1)
+            categories = self.categories
+
         residuals = preds - truth
         absolute_residuals = np.abs(preds - truth)
 
-        # if metrics_dict is None: # TODO? pour améliorer le code et pas tjs appeler self.metrics_dict, pas le temps pour le moment
+        # if metrics_dict is None: # TODO? pour améliorer le code et pas tjs appeler self.metrics_dict
         #     metrics_dict = copy.deepcopy(self.metrics_dict)
 
-        self.metrics_dict[parameter_name] = dict() # TODO? p-ê gérer si ça existe déjà
+        # metrics_dict[parameter_name][category_name][category_value][metric]
+        self.metrics_dict[parameter_name] = self.calculate_metrics_by_category(categories_name, truth, preds, categories)
+        # TODO? faire un bar chart des différentes catégories et de leur métriques (une métrique, toutes les valeurs groupé l'une à côté de l'autre par catégorie avec différentes couleurs)
+        # plt.bar()
 
-        if self.rve:
-            self.metrics_dict[parameter_name]['RVE'] = explained_variance_score(truth, preds)
-        if self.rmse:
-            self.metrics_dict[parameter_name]['RMSE'] = root_mean_squared_error(truth, preds)
-        if self.mae:
-            self.metrics_dict[parameter_name]['MAE'] = mean_absolute_error(truth, preds)
-        if self.medae:
-            self.metrics_dict[parameter_name]['MedAE'] = median_absolute_error(truth, preds)
-        if self.corr:
-            self.metrics_dict[parameter_name]['CORR'], _ = pearsonr(truth, preds)
-        if self.maxe:
-            self.metrics_dict[parameter_name]['MAX_ER'] = max_error(truth, preds)
-        if isinstance(self.percentile, tuple) and len(self.percentile) > 0:
-            self.metrics_dict[parameter_name]['Percentiles'] = dict()
-            for p in self.percentile:
-                if p >= 0 and p <= 100:
-                    self.metrics_dict[parameter_name]['Percentiles'][p] = np.percentile(absolute_residuals, p)
-
-        # if plot_dict is None:  # TODO? pour améliorer le code et pas tjs appeler self.metrics_dict, pas le temps pour le moment
+        # if plot_dict is None:  # TODO? pour améliorer le code et pas tjs appeler self.metrics_dict
         #     plot_dict = copy.deepcopy(self.plot_dict)
 
-        self.plot_dict[parameter_name] = dict() # TODO? gérer si ça existe déjà
+        # TODO faire les plots avec les différentes catégories en couleurs (p-ê certains plots pour chaque catégories)
+        # TODO changer la fonction qui montre l'évaluation et celle qui sauvegarde
+        self.plot_dict[parameter_name] = dict()
 
         if self.predicted_truth_plot: # TODO rajouter dans le mémoire
             # plot showing the predicted vs true values : the x axis is the true values, the y axis is the predicted values
@@ -263,6 +258,53 @@ class Model_evaluator():
                 self.plot_dict[parameter_name]['preds_plot'] = plotted_neg_preds
         
         return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
+    
+    def calculate_metrics_by_category(self, categories_name : list[str], truth : np.ndarray, preds : np.ndarray, categories : np.ndarray):
+        """
+        Calculates the metrics for each category of the values.
+
+        Parameters:
+            categories_name (list[str]) : list containing the names of the different categories in the same order as in categories_train
+            truth (numpy.ndarray) : true values
+            preds (numpy.ndarray) : predicted values
+            categories (numpy.ndarray) : categories of the values
+
+        Returns:
+            dict : a dictionary containing the calculated metrics for each category
+        """
+        sub_metrics_dict = dict()
+
+        for i, cat_name in enumerate(categories_name):
+            sub_metrics_dict[cat_name] = dict()
+            for cat_value in np.unique(categories[i]):
+                mask = categories[i] == cat_value
+                cat_truth = truth[mask] # all the truth from a certain category
+                cat_preds = preds[mask] # all the preds from a certain category
+                # cat_residuals = cat_preds - cat_truth
+                cat_absolute_residuals = np.abs(cat_preds - cat_truth)
+
+                sub_metrics_dict[cat_name][cat_value] = dict()
+
+                sub_metrics_dict[cat_name][cat_value]["value range"] = f"{np.min(cat_truth)} - {np.max(cat_truth)}"
+                if self.rve:
+                    sub_metrics_dict[cat_name][cat_value]['RVE'] = explained_variance_score(cat_truth, cat_preds)
+                if self.rmse:
+                    sub_metrics_dict[cat_name][cat_value]['RMSE'] = root_mean_squared_error(cat_truth, cat_preds)
+                if self.mae:
+                    sub_metrics_dict[cat_name][cat_value]['MAE'] = mean_absolute_error(cat_truth, cat_preds)
+                if self.medae:
+                    sub_metrics_dict[cat_name][cat_value]['MedAE'] = median_absolute_error(cat_truth, cat_preds)
+                if self.corr:
+                    sub_metrics_dict[cat_name][cat_value]['CORR'], _ = pearsonr(cat_truth, cat_preds)
+                if self.maxe:
+                    sub_metrics_dict[cat_name][cat_value]['MAX_ER'] = max_error(cat_truth, cat_preds)
+                if isinstance(self.percentile, tuple) and len(self.percentile) > 0:
+                    sub_metrics_dict[cat_name][cat_value]['Percentiles'] = dict()
+                    for p in self.percentile:
+                        if p >= 0 and p <= 100:
+                            sub_metrics_dict[cat_name][cat_value]['Percentiles'][p] = np.percentile(cat_absolute_residuals, p) 
+        
+        return copy.deepcopy(sub_metrics_dict)
 
     # def _test_fonctionne_pas(self, xlabel : str, ylabel : str, title : str, grid : bool, funcs : list[Callable]) -> plt.Figure:
     #     plot = plt.figure(figsize=(6,6))
@@ -275,7 +317,7 @@ class Model_evaluator():
     #     return plot
 
     # TODO? ajouter une facon d'avoir toutes les metrics d'un coup, pas paramètres par paramètres, pour pouvoir voir en même temps (pas comparer parce que ça sert à rien entre différents paramètres)
-    def show_model_evaluation(self, parameter_name : str=None, metrics_dict : dict=None, plot_dict : dict=None):
+    def show_model_evaluation(self, categories_name : list[str], parameter_name : str=None, metrics_dict : dict=None, plot_dict : dict=None):
         """
         Shows various metrics and plots for the given model predictions.
 
@@ -296,19 +338,36 @@ class Model_evaluator():
                 sys.exit(1)
             plot_dict = self.plot_dict
         
+        print()
         for param in metrics_dict.keys():
             if parameter_name is not None and param != parameter_name:
                 continue # skip to next parameter
-            print()
-            print(f"{param} results:")
-            for key in metrics_dict[param].keys():
-                if key != "Percentiles":
-                    print(f"{key} : ", metrics_dict[param][key])
-                else:
-                    print("Percentiles : ")
-                    for p in metrics_dict[param][key].keys():
-                        print(f"  {p}th percentile : ", metrics_dict[param][key][p])
-            print()
+            for cat_name in metrics_dict[param].keys():
+                for cat_value in metrics_dict[param][cat_name].keys():
+                    for metric in metrics_dict[param][cat_name][cat_value].keys():
+                        if metric != "Percentiles":
+                            print(f"{param}_{cat_name}_{cat_value}_{metric} : ", metrics_dict[param][cat_name][cat_value][metric])
+                        else:
+                            print(f"{param}_{cat_name}_{cat_value}_Percentiles : ")
+                            for p in metrics_dict[param][cat_name][cat_value][metric].keys():
+                                print(f"  {p}th percentile : ", metrics_dict[param][cat_name][cat_value][metric][p])
+        
+        # for param in metrics_dict.keys():
+        #     if parameter_name is not None and param != parameter_name:
+        #         continue # skip to next parameter
+        #     if "Global" in categories_name:
+        #         print()
+        #         print(f"{param} results:")
+        #         for metric in metrics_dict[param]["Global"][1].keys():
+        #             if metric != "Percentiles":
+        #                 print(f"{metric} : ", metrics_dict[param]["Global"][1][metric])
+        #             else:
+        #                 print("Percentiles : ")
+        #                 for p in metrics_dict[param]["Global"][1][metric].keys():
+        #                     print(f"  {p}th percentile : ", metrics_dict[param]["Global"][1][metric][p])
+        #     else:
+        #         print("No global metrics to show.")
+        #     print()
 
             for plot_name in plot_dict[param].keys():
                 plt.show()
@@ -355,20 +414,37 @@ class Model_evaluator():
                 sys.exit(1)
             plot_dict = self.plot_dict
         
-        full_path = path + f"{model_name}/{physical_model}/{tag}/"
-        
-        metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index')
-        if not os.path.exists(full_path):
-            os.makedirs(full_path)
-        metrics_df.to_csv(full_path + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
+        plot_path = path + f"{model_name}/{physical_model}/{tag}/"
+        metrics_path = path + f"{model_name}/{physical_model}/{tag}/metrics/"
+
+        if not os.path.exists(metrics_path): # creates the path for both the metrics and the plots
+            os.makedirs(metrics_path)
+                
+        temp_dict = dict()
+        for param in metrics_dict.keys():
+            for cat_name in metrics_dict[param].keys():
+                for cat_value in metrics_dict[param][cat_name].keys():
+                    if f"{cat_name}_{cat_value}" not in temp_dict.keys():
+                        temp_dict[f"{cat_name}_{cat_value}"] = dict()
+                    temp_dict[f"{cat_name}_{cat_value}"][f"{param}"] = copy.deepcopy(metrics_dict[param][cat_name][cat_value])
+
+        for key in temp_dict.keys():
+            cat_name, cat_value = key.split("_")
+            temp_df = pd.DataFrame.from_dict(temp_dict[key], orient='index')
+            temp_df.to_csv(metrics_path + f"{cat_name}_{cat_value}_metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
+
+        # metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index')
+        # if not os.path.exists(plot_path):
+        #     os.makedirs(plot_path)
+        # metrics_df.to_csv(plot_path + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
 
         if time is not None:
-            with open(full_path + "time_taken.txt", 'w') as file:
+            with open(plot_path + "time_taken.txt", 'w') as file:
                 file.write(f"Time,method\n{time},{train_method}")
 
         for parameter_name in plot_dict.keys():
             for plot_name in plot_dict[parameter_name].keys():
-                plot_dict[parameter_name][plot_name].savefig(full_path + f"{parameter_name}_{plot_name}.png")
+                plot_dict[parameter_name][plot_name].savefig(plot_path + f"{parameter_name}_{plot_name}.png")
 
     # TODO! ne fonctionne pas, pas encore fini
     def evaluate_model(self, model, X_test : np.ndarray, y_test : np.ndarray):
@@ -386,13 +462,15 @@ class Model_evaluator():
         #     self.show_model_evaluation(col)
         pass
     
-    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, parameter_name : str, tag : str, save : bool=True, time : float=None, train_method : str=None, show : bool=True):
+    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, categories : np.ndarray, categories_name : list[str], parameter_name : str, show : bool=True):
         """
         Evaluates the given predictions and prints the metrics.
 
         Parameters:
             truth (np.ndarray) : true values
             preds (np.ndarray) : predicted values
+            categories (np.ndarray) : categories of the values
+            categories_name (list[str]) : list containing the names of the different categories in the same order as in categories_train
             parameter_name (str) : name of the parameter being evaluated
             tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
             save (bool) : whether to save the metrics and plots
@@ -400,54 +478,66 @@ class Model_evaluator():
             train_method (str) : what method was used to train the model (i.e. "K_fold" or "normal")
             show (bool) : whether to show the metrics and plots
         """
-        self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds)
+        self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds, categories=categories, categories_name=categories_name)
         # self.metrics_dict, self.plot_dict = self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds) # TODO? si je change le code comme le todo dans la fct
-        self.show_model_evaluation(parameter_name)
-
-        if save:
-            self.save_model_evaluation(tag=tag, time=time, train_method=train_method)
+        if show:
+            self.show_model_evaluation(categories_name=categories_name, parameter_name=parameter_name)
     
-    def evaluate_Kfold_results(self, model : Callable, X_train_data : np.ndarray, y_train_data : np.ndarray, path : str, tag : str, n_splits : int=10, random_state : int=12, 
-                               override : bool=False, use_preds : bool = False, show_depth=True, save=True, **kwargs):
+    def evaluate_Kfold_results(self, model : Callable, X_train : np.ndarray, y_train : np.ndarray, categories_train : np.ndarray, categories_name : list[str], 
+                               path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool=False, 
+                               show_depth : bool=True, save : bool=True, add_global : bool=True, show : bool=True, **kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
+        Also saves the prediction, truth and categories in a ".npy" file.
 
         Parameters:
             model (Callable) : machine learning model to be trained
-            X_train_data (numpy.ndarray) : training features
-            y_train_data (numpy.ndarray) : training targets
+            X_train (numpy.ndarray) : training features
+            y_train (numpy.ndarray) : training targets
+            categories_train (numpy.ndarray) : training categories of the values
+            categories_name (list[str]) : list containing the names of the different categories in the same order as in categories_train
             tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
             path (str) : path to the directory in which the predictions and truths will be saved
             override (bool) : whether to override existing results or use the existing ones
             use_preds (bool) : whether to use existing predictions instead of generating new ones
             save (bool) : wether or not to save the results
+            add_global (bool) : whether to add the global metrics (i.e. not separated by category) to the metrics_dict
+            show (bool) : whether to show the metrics and plots
             **kwargs : additional arguments which will be passed to the model during training
         """
+        if add_global:
+            categories_name.append("Global")
+            categories_train = np.append(categories_train, [[1] for _ in range(len(categories_train))], axis=1)
+            # adds a column to categories_name with the value 1 for all rows
+
         print(f"\n{tag} train data :")
-        if not use_preds:
-            if not override and self.check_existing_results(tag):
+        if not use_preds: # not using the existing predictions
+            if not override and self.check_existing_results(tag): # not overriding, results need to exist and we show if that is the case
                 self.show_existing_results(tag)
-            else:
+            else: # overriding, creating the results and predictions
                 start = time.time()
-                truth, preds = Model_trainer.Kfold_pipeline(model, X_train_data=X_train_data, y_train_data=y_train_data, n_splits=n_splits, random_state=random_state, **kwargs)
+                truth, preds, categories = Model_trainer.Kfold_pipeline(model, X=X_train, y=y_train, categories=categories_train, n_splits=n_splits, random_state=random_state, **kwargs)
                 end = time.time()
+                for i, output_param in enumerate(self.output_parameters):
+                    self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show)
                 if save:
                     self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
                     self.save_numpy_array(truth, path, f"{tag}_truths.npy")
-                for i, output_param in enumerate(self.output_parameters):
-                    self.evaluate_predictions(truth[i], preds[i], output_param, tag, time=end-start, train_method="K_fold", save=save)
-        if use_preds:
-            if override:
+                    self.save_numpy_array(categories, path, f"{tag}_categories.npy")
+                    self.save_model_evaluation(tag=tag, time=end-start, train_method="K_fold")
+        if use_preds: # using the existing predictions
+            if override: # overriding, we do not allow this case
                 print("Error: cannot override when using existing predictions. Set either override or use_preds to False.")
                 sys.exit(1)
-            elif not override:
+            elif not override: # not overriding, we use the existing predictions if they exist and do not save the results
                 if not os.path.exists(path + f"{self.model_name}"): # TODO? utilisation de self.model_name, si pas spécifié ça créé un problème
                     print("Error: predictions do not exist.")
                     sys.exit(1)
                 preds = self.load_numpy_array(path, f"{tag}_predictions.npy")
                 truth = self.load_numpy_array(path, f"{tag}_truths.npy")
+                categories = self.load_numpy_array(path, f"{tag}_categories.npy")
                 for i, output_param in enumerate(self.output_parameters):
-                    self.evaluate_predictions(truth[i], preds[i], output_param, tag, save=save)
+                    self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show)
     
     def check_existing_results(self, tag : str, model_name : str=None, path : str=None) -> bool:
         """
