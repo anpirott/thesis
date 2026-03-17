@@ -344,13 +344,15 @@ class Model_evaluator():
                 continue # skip to next parameter
             for cat_name in metrics_dict[param].keys():
                 for cat_value in metrics_dict[param][cat_name].keys():
+                    print(f"{param} results for the {cat_name} category with a value of {cat_value}")
                     for metric in metrics_dict[param][cat_name][cat_value].keys():
                         if metric != "Percentiles":
-                            print(f"{param}_{cat_name}_{cat_value}_{metric} : ", metrics_dict[param][cat_name][cat_value][metric])
+                            print(f"  {metric} : ", metrics_dict[param][cat_name][cat_value][metric])
                         else:
-                            print(f"{param}_{cat_name}_{cat_value}_Percentiles : ")
+                            print(f"  Percentiles : ")
                             for p in metrics_dict[param][cat_name][cat_value][metric].keys():
-                                print(f"  {p}th percentile : ", metrics_dict[param][cat_name][cat_value][metric][p])
+                                print(f"    {p}th percentile : ", metrics_dict[param][cat_name][cat_value][metric][p])
+                    print()
 
             for plot_name in plot_dict[param].keys():
                 plt.show()
@@ -586,32 +588,33 @@ class Model_evaluator():
                 sys.exit(1)
             physical_model = self.physical_model
 
-        full_path = path + f"{model_name}/{physical_model}/{tag}/"
-        print(os.listdir(full_path))
-        sys.exit(0)
+        plot_path = path + f"{model_name}/{physical_model}/{tag}/"
+        metrics_path = path + f"{model_name}/{physical_model}/{tag}/metrics/"
 
-        for filename in os.listdir(full_path):
+        for filename in os.listdir(metrics_path):
             if filename.endswith(".csv"):
-                with open(full_path + filename, 'r') as file:
+                with open(metrics_path + filename, 'r') as file:
                     results = csv.DictReader(file)
+                    cat_name, cat_value = filename.split("_")[0], filename.split("_")[1]
                     for line_dict in results:
-                        print(f"{line_dict['']} results:")
-                        for key in line_dict.keys():
-                            if key == "":
+                        print(f"{line_dict['']} results for the {cat_name} category with a value of {cat_value}")
+                        for metric in line_dict.keys():
+                            if metric == "":
                                 continue
-                            if key != "Percentiles":
-                                print(f"{key} : ", line_dict[key])
-                            elif key == "Percentiles":
-                                print("Percentiles : ")
-                                percentiles_dict = eval(line_dict[key])
+                            if metric != "Percentiles":
+                                print(f"  {metric} : ", line_dict[metric])
+                            elif metric == "Percentiles":
+                                print("  Percentiles : ")
+                                percentiles_dict = eval(line_dict[metric])
                                 for p in percentiles_dict.keys():
-                                    print(f"  {p}th percentile : ", percentiles_dict[p])
+                                    print(f"    {p}th percentile : ", percentiles_dict[p])
                         print()
 
-            elif filename.endswith(".png"):
-                display(Image(filename=full_path + filename)) # TODO ne fonctionne p-ê que dans un notebook
+        for filename in os.listdir(plot_path):
+            if filename.endswith(".png"):
+                display(Image(filename=plot_path + filename)) # TODO ne fonctionne p-ê que dans un notebook
 
-    def save_numpy_array(self, arr : np.ndarray, path : str, filename : str, model_name : str=None):
+    def save_numpy_array(self, arr : np.ndarray, path : str, filename : str, model_name : str=None, physical_model : str=None):
         """
         Saves the given numpy array to a .npy file.
 
@@ -625,13 +628,19 @@ class Model_evaluator():
                 print("Error: model_name not provided.")
                 sys.exit(1)
             model_name = self.model_name
+        if physical_model is None:
+            if self.physical_model is None:
+                print("Error: physical_model not provided.")
+                sys.exit(1)
+            physical_model = self.physical_model
+
         path = sanitize_path(path)
-        full_path = path + f"{model_name}/{self.physical_model}/" # TODO? pas modulable mais pas le temps de le faire maintenant
+        full_path = path + f"{model_name}/{physical_model}/"
         if not os.path.exists(full_path):
             os.makedirs(full_path)
         np.savetxt(full_path + filename, arr)
     
-    def load_numpy_array(self, path : str, filename : str, model_name : str=None) -> np.ndarray: # TODO à tester
+    def load_numpy_array(self, path : str, filename : str, model_name : str=None, physical_model : str=None) -> np.ndarray:
         """
         Loads the numpy array from a .npy file.
 
@@ -645,8 +654,14 @@ class Model_evaluator():
                 print("Error: model_name not provided.")
                 sys.exit(1)
             model_name = self.model_name
+        if physical_model is None:
+            if self.physical_model is None:
+                print("Error: physical_model not provided.")
+                sys.exit(1)
+            physical_model = self.physical_model
+        
         path = sanitize_path(path)
-        full_path = path + f"{model_name}/{self.physical_model}/"
+        full_path = path + f"{model_name}/{physical_model}/"
         return np.loadtxt(full_path + filename)
 
 
