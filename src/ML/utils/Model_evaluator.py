@@ -11,6 +11,7 @@ import copy
 from collections.abc import Callable
 from IPython.display import Image
 from IPython.display import display
+from pathlib import Path
 
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error,\
                             root_mean_squared_error, median_absolute_error
@@ -174,8 +175,6 @@ class Model_evaluator():
         # if plot_dict is None:  # TODO? pour améliorer le code et pas tjs appeler self.metrics_dict
         #     plot_dict = copy.deepcopy(self.plot_dict)
 
-        # TODO faire les plots avec les différentes catégories en couleurs (p-ê certains plots pour chaque catégories)
-        # TODO changer la fonction qui montre l'évaluation et celle qui sauvegarde
         self.plot_dict[parameter_name] = dict()
 
         if self.predicted_truth_plot: # TODO rajouter dans le mémoire
@@ -276,6 +275,7 @@ class Model_evaluator():
 
         for i, cat_name in enumerate(categories_name):
             sub_metrics_dict[cat_name] = dict()
+
             for cat_value in np.unique(categories[i]):
                 mask = categories[i] == cat_value
                 cat_truth = truth[mask] # all the truth from a certain category
@@ -351,23 +351,6 @@ class Model_evaluator():
                             print(f"{param}_{cat_name}_{cat_value}_Percentiles : ")
                             for p in metrics_dict[param][cat_name][cat_value][metric].keys():
                                 print(f"  {p}th percentile : ", metrics_dict[param][cat_name][cat_value][metric][p])
-        
-        # for param in metrics_dict.keys():
-        #     if parameter_name is not None and param != parameter_name:
-        #         continue # skip to next parameter
-        #     if "Global" in categories_name:
-        #         print()
-        #         print(f"{param} results:")
-        #         for metric in metrics_dict[param]["Global"][1].keys():
-        #             if metric != "Percentiles":
-        #                 print(f"{metric} : ", metrics_dict[param]["Global"][1][metric])
-        #             else:
-        #                 print("Percentiles : ")
-        #                 for p in metrics_dict[param]["Global"][1][metric].keys():
-        #                     print(f"  {p}th percentile : ", metrics_dict[param]["Global"][1][metric][p])
-        #     else:
-        #         print("No global metrics to show.")
-        #     print()
 
             for plot_name in plot_dict[param].keys():
                 plt.show()
@@ -433,11 +416,6 @@ class Model_evaluator():
             temp_df = pd.DataFrame.from_dict(temp_dict[key], orient='index')
             temp_df.to_csv(metrics_path + f"{cat_name}_{cat_value}_metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
 
-        # metrics_df = pd.DataFrame.from_dict(metrics_dict, orient='index')
-        # if not os.path.exists(plot_path):
-        #     os.makedirs(plot_path)
-        # metrics_df.to_csv(plot_path + f"metrics.csv", sep=',', encoding='utf-8', index=True, header=True)
-
         if time is not None:
             with open(plot_path + "time_taken.txt", 'w') as file:
                 file.write(f"Time,method\n{time},{train_method}")
@@ -482,6 +460,8 @@ class Model_evaluator():
         # self.metrics_dict, self.plot_dict = self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds) # TODO? si je change le code comme le todo dans la fct
         if show:
             self.show_model_evaluation(categories_name=categories_name, parameter_name=parameter_name)
+        else:
+            plt.close('all')
     
     def evaluate_Kfold_results(self, model : Callable, X_train : np.ndarray, y_train : np.ndarray, categories_train : np.ndarray, categories_name : list[str], 
                                path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool=False, 
@@ -505,22 +485,26 @@ class Model_evaluator():
             show (bool) : whether to show the metrics and plots
             **kwargs : additional arguments which will be passed to the model during training
         """
-        if add_global:
-            categories_name.append("Global")
+        if add_global: 
             categories_train = np.append(categories_train, [[1] for _ in range(len(categories_train))], axis=1)
+            if "Global" not in categories_name: # second condition for running the same cell multiple times in a jupyter notebook
+                categories_name.append("Global")
             # adds a column to categories_name with the value 1 for all rows
 
         print(f"\n{tag} train data :")
         if not use_preds: # not using the existing predictions
-            if not override and self.check_existing_results(tag): # not overriding, results need to exist and we show if that is the case
-                self.show_existing_results(tag)
+            if not override and self.check_existing_results(tag): # not overriding, results need to exist and we show if that is the case, results are not recreated
+                self.show_existing_results(tag) # TODO encore ça à faire et la fonction de comparaison
             else: # overriding, creating the results and predictions
+                print("Performing K-fold...")
                 start = time.time()
                 truth, preds, categories = Model_trainer.Kfold_pipeline(model, X=X_train, y=y_train, categories=categories_train, n_splits=n_splits, random_state=random_state, **kwargs)
                 end = time.time()
+                print("Evaluating predictions...")
                 for i, output_param in enumerate(self.output_parameters):
                     self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show)
                 if save:
+                    print("Saving predictions and results...")
                     self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
                     self.save_numpy_array(truth, path, f"{tag}_truths.npy")
                     self.save_numpy_array(categories, path, f"{tag}_categories.npy")
@@ -536,10 +520,11 @@ class Model_evaluator():
                 preds = self.load_numpy_array(path, f"{tag}_predictions.npy")
                 truth = self.load_numpy_array(path, f"{tag}_truths.npy")
                 categories = self.load_numpy_array(path, f"{tag}_categories.npy")
+                print("Evaluating predictions...")
                 for i, output_param in enumerate(self.output_parameters):
                     self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show)
     
-    def check_existing_results(self, tag : str, model_name : str=None, path : str=None) -> bool:
+    def check_existing_results(self, tag : str, model_name : str=None, path : str=None, physical_model : str=None) -> bool:
         """
         Checks if the results for the given tag already exist.
 
@@ -561,12 +546,20 @@ class Model_evaluator():
             path = self.path
         else:
             path = sanitize_path(path)
+        if physical_model is None:
+            if self.physical_model is None:
+                print("Error: physical_model not provided.")
+                sys.exit(1)
+            physical_model = self.physical_model
         
-        if os.path.exists(path + f"{model_name}/{tag}/metrics.csv"):
+        exists = False
+        for _ in Path(path + f"{model_name}/{physical_model}/{tag}/metrics").glob("*_metrics.csv"):
+            exists = True
+        if exists:
             return True
         return False
     
-    def show_existing_results(self, tag : str, model_name : str=None, path : str=None):
+    def show_existing_results(self, tag : str, model_name : str=None, path : str=None, physical_model : str=None):
         """
         Loads the existing results for the given tag.
 
@@ -587,7 +580,15 @@ class Model_evaluator():
             path = self.path
         else:
             path = sanitize_path(path)
-        full_path = path + f"{model_name}/{tag}/"
+        if physical_model is None:
+            if self.physical_model is None:
+                print("Error: physical_model not provided.")
+                sys.exit(1)
+            physical_model = self.physical_model
+
+        full_path = path + f"{model_name}/{physical_model}/{tag}/"
+        print(os.listdir(full_path))
+        sys.exit(0)
 
         for filename in os.listdir(full_path):
             if filename.endswith(".csv"):

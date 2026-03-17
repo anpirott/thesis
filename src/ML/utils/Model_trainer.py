@@ -45,7 +45,7 @@ class Model_trainer():
         kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state) # TODO? si random_state=None je fais une ligne à part
         counter = 0
         if verbose:
-            print("split", end=' ')
+            print("Split", end=' ')
         for train_index, test_index in kf.split(X):
             counter += 1
             if verbose:
@@ -79,6 +79,7 @@ class Model_trainer():
                     shuffled_categories[i] = categories_test[:, i]
                 else:
                     shuffled_categories[i] = np.hstack((shuffled_categories[i], categories_test[:, i]))
+        print()
         
         return truth, preds, shuffled_categories
 
