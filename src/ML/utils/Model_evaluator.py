@@ -11,7 +11,6 @@ import copy
 from collections.abc import Callable
 from IPython.display import Image
 from IPython.display import display
-from pathlib import Path
 
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error,\
                             root_mean_squared_error, median_absolute_error
@@ -555,8 +554,10 @@ class Model_evaluator():
             physical_model = self.physical_model
         
         exists = False
-        for _ in Path(path + f"{model_name}/{physical_model}/{tag}/metrics").glob("*_metrics.csv"):
-            exists = True
+        for filename in os.listdir(path + f"{model_name}/{physical_model}/{tag}/metrics"):
+            if not exists and filename.endswith("_metrics.csv"):
+                exists = True
+        
         if exists:
             return True
         return False
