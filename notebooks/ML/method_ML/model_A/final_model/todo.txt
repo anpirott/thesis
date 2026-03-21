@@ -1,4 +1,0 @@
-faire un exemple ou je ne donne pas une isochrone au modèle final et 
-je lui demande de me prédire toutes les valeurs de l'isochrone pour voir
-si les prédictions qu'il fait suivent l'isochrone ou non?
-comme dans "scalable..." page 11
