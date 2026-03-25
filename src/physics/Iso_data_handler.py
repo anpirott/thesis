@@ -25,7 +25,7 @@ class Iso_data_handler():
         reclassify_misclassified_stars (pd.DataFrame) : Reclassifies the data points which have the wrong phase. Is used when parameter "reclassify" is set to True
         _sub_reclassify_misclassified_stars (pd.DataFrame) : Function which is used by reclassify_misclassified_stars(). Should not be used by itself.
     """
-    def __init__(self, path : str, col_names : list[str], physical_model : str, reclassify : bool=None):
+    def __init__(self, path : str, col_names : list[str], physical_model : str, reclassify : bool=False, rescale : bool=False):
         """
         Initializes the Iso_data_handler class.
 
@@ -56,6 +56,8 @@ class Iso_data_handler():
             physical_model (str): defines which data to use, either "MIST" or "PARSEC"
             reclassify (bool): parameter which is used with MIST data as there are some stars which are misclassified.
                                If set to True, reclassifies the stars in the dataset, does not if set to False.
+            rescale (bool): parameter which is used with PARSEC data as the 'Rpol' columns is not in log scale, as opposed to the other columns.
+                            If set to True, rescales the 'Rpol' values to be in log scale, does not if set to False.
         """
         self.path = sanitize_path(path)
 
@@ -69,6 +71,7 @@ class Iso_data_handler():
             print("Error: physical_model should be either 'MIST' or 'PARSEC'")
             sys.exit(1)
         self.reclassify = reclassify
+        self.rescale = rescale
 
         self.all_MIST_col_names = ["log10_isochrone_age_yr", "initial_mass", "star_mass", "star_mdot", "he_core_mass", "c_core_mass", "log_L", "log_LH", 
                                    "log_LHe", "log_Teff", "log_R", "log_g", "surface_h1", "surface_he3", "surface_he4", "surface_c12", "surface_o16", 
@@ -93,7 +96,7 @@ class Iso_data_handler():
                                      'K_i35', 'K_i40', 'K_i45', 'K_i50', 'K_i55', 'K_i60', 'K_i65', 'K_i70', 'K_i75', 'K_i80', 'K_i85', 'K_i90']
         # + "metallicity" once the csv has been created, we do not use Zini to be consistent with MIST data
     
-    def get_isochrone_dataframe(self, path : str=None, col_names : list[str]=None, physical_model : str=None, override : bool=False, reclassify : bool=None) -> pd.DataFrame:
+    def get_isochrone_dataframe(self, path : str=None, col_names : list[str]=None, physical_model : str=None, override : bool=False, reclassify : bool=None, rescale : bool=None) -> pd.DataFrame:
         """
         Uses the internal functions to give a dataframe containing either MIST or PARSEC data.
         
@@ -131,6 +134,8 @@ class Iso_data_handler():
                              Otherwise, it only computes the dataframe if the file does not exist and returns the saved dataframe if it does.
             reclassify (bool): parameter which is used with MIST data as there are some stars which are misclassified.
                                If set to True, reclassifies the stars in the dataset, does not if set to False.
+            rescale (bool): parameter which is used with PARSEC data as the 'Rpol' columns is not in log scale, as opposed to the other columns.
+                            If set to True, rescales the 'Rpol' values to be in log scale, does not if set to False.
         
         Returns:
             pandas.DataFrame : a pandas dataframe containing the data of the isochrones with the requested columns
@@ -146,12 +151,14 @@ class Iso_data_handler():
             physical_model = self.physical_model
         if reclassify is None:
             reclassify = self.reclassify
+        if rescale is None:
+            rescale = self.rescale
         
-        iso_df = self._full_isochrone_data_to_dataframe(path, col_names, physical_model, override, reclassify)
+        iso_df = self._full_isochrone_data_to_dataframe(path, col_names, physical_model, override, reclassify, rescale)
 
         return iso_df
     
-    def _full_isochrone_data_to_dataframe(self, path : str, col_names : list[str], physical_model : str, override : bool, reclassify : bool) -> pd.DataFrame:
+    def _full_isochrone_data_to_dataframe(self, path : str, col_names : list[str], physical_model : str, override : bool, reclassify : bool, rescale : bool) -> pd.DataFrame:
         """
         Reads all MIST or PARSEC isochrone files in the given directory and creates a pandas dataframe of all the data with the requested columns.
         The dataframe, with all columns, is saved in the directory under the name "PARSEC_iso_full_data.csv".
@@ -170,12 +177,16 @@ class Iso_data_handler():
                               Otherwise, it only computes the dataframe if the file does not exist and returns the saved dataframe if it does.
             reclassify (bool): parameter which is used with MIST data as there are some stars which are misclassified.
                                If set to True, reclassifies the stars in the dataset, does not if set to False.
+            rescale (bool): parameter which is used with PARSEC data as the 'Rpol' columns is not in log scale, as opposed to the other columns.
+                            If set to True, rescales the 'Rpol' values to be in log scale, does not if set to False.
                                     
         Returns:
             pandas.DataFrame : a pandas dataframe containing the data of the isochrones with the requested columns
         """
         if (physical_model == "MIST") and reclassify:
             csv_filename = f"{physical_model}_reclassified_iso_full_data.csv"
+        if (physical_model == "PARSEC") and rescale:
+            csv_filename = f"{physical_model}_rescaled_iso_full_data.csv"
         else:
             csv_filename = f"{physical_model}_iso_full_data.csv"
         
@@ -202,6 +213,8 @@ class Iso_data_handler():
             
             if (physical_model == "MIST") and reclassify:
                 full_iso_df = self.reclassify_misclassified_stars(full_iso_df)
+            if (physical_model == "PARSEC") and rescale:
+                full_iso_df = self.rescale_PARSEC_data(full_iso_df)
                 
             # saves the dataframe in a csv file
             print(f"Writing {physical_model} dataframe to csv file...")
@@ -272,7 +285,6 @@ class Iso_data_handler():
 
         return iso_df
     
-    # TODO rajouter docstring
     def reclassify_misclassified_stars(self, data_df : pd.DataFrame) -> pd.DataFrame:
         """
         Reclassifies the data points which have the wrong phase. Is used when parameter "reclassify" is set to True
@@ -316,7 +328,20 @@ class Iso_data_handler():
                       (data_dff["log_Teff"] >= log_Teff_lim[2]) & (data_dff["log_L"] <= log_L_lim[2])), ["phase"]] = 6
         
         return data_dff
+    
+    def rescale_PARSEC_data(self, data_df : pd.DataFrame) -> pd.DataFrame:
+        """
+        Rescales the 'Rpol' column of the PARSEC data to be in log scale, as opposed to the other columns. Is used when parameter "rescale" is set to True
 
+        Parameters:
+            data_df (pd.DataFrame) : the dataframe containing the PARSEC data with 'Rpol' values not in log scale.
+        
+        Returns:
+            pd.DataFrame : the dataframe containing the PARSEC data with 'Rpol' values in log scale.
+        """
+        data_dff = data_df.copy(deep=True)
+        data_dff["Rpol"] = np.log10(data_dff["Rpol"])
+        return data_dff
 
 if __name__ == "__main__":
     pass

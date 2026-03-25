@@ -56,10 +56,10 @@ def isclose_pandas(df, col_name, value, rel_tol=1e-6):
     df.apply(isclose_pandas_apply, axis=1, args=(col_name, value, bool_index, rel_tol))
     return bool_index
 
-def print_uniques(col_name, df):
+def print_uniques(col_name, df, force=False):
     uniques = df[col_name].unique()
     uniques.sort()
-    if len(uniques) < 50:
+    if force or len(uniques) < 50:
         print(col_name + " : " + str(uniques))
     else:
         print(f"{col_name} : {len(uniques)} unique values, range [{uniques[0]}, {uniques[-1]}]")
@@ -112,37 +112,6 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
     ...
     | KNN   | MIST            | Base   | mass             |X.X|X.X|... |
     |       |                 |        | radius           |X.X|X.X|... |
-    ...
-    ...
-
-    # TODO? faire plusieurs tables et pas une grande table?
-    | model | physical_models | filter | output_parameter | category | category value | metrics    |
-    |       |                 |                           |                           |RVE|RMSE|...|
-    ------------------------------------------------------------------------------------------------
-    | mlp   | MIST            | Base   | mass             | phase    | 0.0            |X.X|X.X|... |
-    |       |                 |        |                  |          | 2.0            |X.X|X.X|... |
-    |       |                 |        |                  |          | ...            |            |
-    |       |                 |        |                  | Global   | 1.0            |X.X|X.X|... |
-    |       |                 |        | radius           | phase    | 0.0            |X.X|X.X|... |
-    |       |                 |        |                  |          | 2.0            |X.X|X.X|... |
-    |       |                 |        |                  |          | ...            |            |
-    |       |                 |        |                  | Global   | 1.0            |X.X|X.X|... |
-    |       |                 | log_g  | mass             | phase    | 0.0            |X.X|X.X|... |
-    |       |                 |        |                  |          | 2.0            |X.X|X.X|... |
-    |       |                 |        |                  |          | ...            |            |
-    |       |                 |        |                  | Global   | 1.0            |X.X|X.X|... |
-    |       |                 |        | radius           | phase    | 0.0            |X.X|X.X|... |
-    |       |                 |        |                  |          | 2.0            |X.X|X.X|... |
-    |       |                 |        |                  |          | ...            |            |
-    |       |                 |        |                  | Global   | 1.0            |X.X|X.X|... |
-    |       |                 | ...    |                  |          |                |            |
-    |       | PARSEC          | Base   | mass             |          |                |X.X|X.X|... |
-    |       |                 |        | radius           |          |                |X.X|X.X|... |
-    |       |                 | log_g  | mass             |          |                |X.X|X.X|... |
-    |       |                 |        | radius           |          |                |X.X|X.X|... |
-    ...
-    | KNN   | MIST            | Base   | mass             |          |                |X.X|X.X|... |
-    |       |                 |        | radius           |          |                |X.X|X.X|... |
     ...
     ...
     """
