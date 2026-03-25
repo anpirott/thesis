@@ -34,8 +34,8 @@ class Model_evaluator():
     """
     def __init__(self, model_name : str, output_parameters : list[str], model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, categories : np.ndarray=None, # TODO? rajouter le temps dans le dict?
                  path : str=None, rve : bool=True, rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
-                 predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, qq_plot : bool=True, 
-                 preds_plot : bool=True, neg_preds_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
+                 predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, category_residuals_histogram : bool=True, qq_plot : bool=True, 
+                 preds_plot : bool=True, category_preds_plot : bool=True, neg_preds_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
         Initializes the Model_evaluator class.
 
@@ -71,8 +71,10 @@ class Model_evaluator():
         self.residuals_truth_plot = residuals_truth_plot
         self.residuals_boxplot = residuals_boxplot
         self.residuals_histogram = residuals_histogram
+        self.category_residuals_histogram = category_residuals_histogram
         self.qq_plot = qq_plot
         self.preds_plot = preds_plot
+        self.category_preds_plot = category_preds_plot
         self.neg_preds_plot = neg_preds_plot
 
         self.metrics_dict = dict()
@@ -222,6 +224,32 @@ class Model_evaluator():
             plt.ylabel('Frequency')
             plt.title(f'Histogram of Residuals for {parameter_name}')
             self.plot_dict[parameter_name]['residuals_histogram_plot'] = plotted_histogram
+        if self.category_residuals_histogram: # TODO rajouter dans le mémoire si je le garde
+            self.plot_dict[parameter_name]['category_residuals_histogram_plot'] = dict()
+            for i, cat_name in enumerate(categories_name):
+                if cat_name == "Global":
+                    continue
+
+                num_cat = len(np.unique(categories[i]))
+                print(num_cat)
+                a = int(np.round(np.sqrt(num_cat))) # number of rows
+                b = (num_cat + a - 1) // a # number of columns
+
+                category_plotted_histogram = plt.figure(figsize=(5*a,3*b))
+                axes = category_plotted_histogram.subplots(a, b)
+                for j, cat_value in enumerate(np.unique(categories[i])):
+                    mask = categories[i] == cat_value
+                    cat_truth = truth[mask] # all the truth from a certain category
+                    cat_preds = preds[mask] # all the preds from a certain category
+                    cat_residuals = cat_preds - cat_truth
+
+                    axes_x, axes_y = j//(a+1), j%b
+                    axes[axes_x, axes_y].hist(cat_residuals, bins=60)
+                    axes[axes_x, axes_y].set_xlabel('Residuals')
+                    axes[axes_x, axes_y].set_ylabel('Frequency')
+                    axes[axes_x, axes_y].set_title(f"{cat_name}_{cat_value}")
+                # plt.title(f'Histogram of Residuals for {parameter_name} for category {cat_name}')
+                self.plot_dict[parameter_name]['category_residuals_histogram_plot'][cat_name] = category_plotted_histogram
         if self.qq_plot: # TODO rajouter dans le mémoire si je le garde
             # compare la distribution des résidus à une autre distribution (normal, exponentielle, etc.), pas utile si la distribution des résidus ne nous intéresse pas => RMSE vs MAE?
             plotted_qq = plt.figure(figsize=(6,6))
@@ -242,6 +270,30 @@ class Model_evaluator():
             plt.ylabel('Frequency')
             plt.title(f'Histogram of predictions for {parameter_name}')
             self.plot_dict[parameter_name]['preds_plot'] = plotted_preds
+        if self.category_preds_plot:
+            self.plot_dict[parameter_name]['category_preds_histogram_plot'] = dict()
+            for i, cat_name in enumerate(categories_name):
+                if cat_name == "Global":
+                    continue
+
+                num_cat = len(np.unique(categories[i]))
+                print(num_cat)
+                a = int(np.round(np.sqrt(num_cat))) # number of rows
+                b = (num_cat + a - 1) // a # number of columns
+
+                category_plotted_preds = plt.figure(figsize=(5*a,3*b))
+                axes = category_plotted_preds.subplots(a, b)
+                for j, cat_value in enumerate(np.unique(categories[i])):
+                    mask = categories[i] == cat_value
+                    cat_preds = preds[mask] # all the preds from a certain category
+
+                    axes_x, axes_y = j//(a+1), j%b
+                    axes[axes_x, axes_y].hist(cat_preds, bins=50, log=True)
+                    axes[axes_x, axes_y].set_xlabel('Predictions')
+                    axes[axes_x, axes_y].set_ylabel('Frequency')
+                    axes[axes_x, axes_y].set_title(f"{cat_name}_{cat_value}")
+                # plt.title(f'Histogram of Predictions for {parameter_name} for category {cat_name}')
+                self.plot_dict[parameter_name]['category_preds_histogram_plot'][cat_name] = category_plotted_preds
         if self.neg_preds_plot:
             mask = preds <= 0  # [False, True, False, True, False, True, False, True]
             filtered_preds = preds[mask]
@@ -354,7 +406,11 @@ class Model_evaluator():
                     print()
 
             for plot_name in plot_dict[param].keys():
-                plt.show()
+                if isinstance(plot_dict[param][plot_name], dict):
+                    for cat_plot in plot_dict[param][plot_name]:
+                        plt.show()
+                else:
+                    plt.show()
                 # plot_dict[param][plot_name].show()
     
     def save_model_evaluation(self,  tag : str, model_name : str=None, physical_model : str=None, path : str=None, metrics_dict : dict=None, plot_dict : dict=None, time : float=None, train_method : str=None):
