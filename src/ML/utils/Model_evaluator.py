@@ -475,7 +475,6 @@ class Model_evaluator():
             for plot_name in plot_dict[parameter_name].keys():
                 if isinstance(plot_dict[param][plot_name], dict):
                     for cat_plot in plot_dict[param][plot_name]:
-                        print(os.path.exists(plot_path))
                         plot_dict[param][plot_name][cat_plot].savefig(plot_path + f"{parameter_name}_{plot_name}_{cat_plot}.png")
                 else:
                     plot_dict[parameter_name][plot_name].savefig(plot_path + f"{parameter_name}_{plot_name}.png")

@@ -145,67 +145,63 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
     if len(data_filters) == 0:
         print("Error : no results for any physical model exists.")
         sys.exit(1)
-    
-    path_strings = []
-    for model_name in model_names:
-        for physical_model in physical_models:
-            for data_filter in data_filters:
-                path_strings.append(path + f"{model_name}/{physical_model}/{data_filter}/metrics")
 
-    for path_string in path_strings:
-        for filename in os.listdir(path_string):
-            cat_name, cat_value = filename.split("_")[0], filename.split("_")[1]
-            print(f"Results for the {cat_name} category with a value of {cat_value}")
-            results_dict = dict()
-            for model_name in model_names:
-                results_dict[model_name] = dict()
-                for physical_model in physical_models:
-                    results_dict[model_name][physical_model] = dict()
-                    for data_filter in data_filters:
-                        results_dict[model_name][physical_model][data_filter] = dict()
-                        time_path = path + f"{model_name}/{physical_model}/{data_filter}/"
-                        metrics_path = path + f"{model_name}/{physical_model}/{data_filter}/metrics/"
+    init_metrics_path = path + f"{model_names[0]}/{physical_models[0]}/{data_filters[0]}/metrics/" 
+    # all the metrics file should have the same name in every metrics directory
 
-                        with open(metrics_path + filename, 'r') as metrics_file:
-                            with open(time_path + "time_taken.txt", 'r') as time_file:
-                                lines = time_file.readlines() # retrieving the time taken
-                                dict_reader = csv.DictReader(metrics_file) # retrieving the metrics
+    for filename in os.listdir(init_metrics_path):
+        cat_name, cat_value = filename.split("_")[0], filename.split("_")[1]
+        print(f"Results for the {cat_name} category with a value of {cat_value}")
+        results_dict = dict()
+        for model_name in model_names:
+            results_dict[model_name] = dict()
+            for physical_model in physical_models:
+                results_dict[model_name][physical_model] = dict()
+                for data_filter in data_filters:
+                    results_dict[model_name][physical_model][data_filter] = dict()
+                    time_path = path + f"{model_name}/{physical_model}/{data_filter}/"
+                    metrics_path = path + f"{model_name}/{physical_model}/{data_filter}/metrics/"
 
-                                for metrics_dict in list(dict_reader):
-                                    metrics_dict_copy = copy.deepcopy(metrics_dict)
-                                    # creating a nicer way to display the percentiles
-                                    percentiles = eval(metrics_dict_copy.pop("Percentiles"))
-                                    str_percentiles = ""
-                                    for thresh, value in percentiles.items():
-                                        str_percentiles += f" {thresh} : {round(value, 5)} /"
-                                    str_percentiles = str_percentiles[:-1]
-                                    metrics_dict_copy["Percentiles"] = str_percentiles
+                    with open(metrics_path + filename, 'r') as metrics_file:
+                        with open(time_path + "time_taken.txt", 'r') as time_file:
+                            lines = time_file.readlines() # retrieving the time taken
+                            dict_reader = csv.DictReader(metrics_file) # retrieving the metrics
 
-                                    metrics_dict_copy["time"] = lines[1].split(',')[0] # adding the time to the metrics dictionnary
+                            for metrics_dict in list(dict_reader):
+                                metrics_dict_copy = copy.deepcopy(metrics_dict)
+                                # creating a nicer way to display the percentiles
+                                percentiles = eval(metrics_dict_copy.pop("Percentiles"))
+                                str_percentiles = ""
+                                for thresh, value in percentiles.items():
+                                    str_percentiles += f" {thresh} : {round(value, 5)} /"
+                                str_percentiles = str_percentiles[:-1]
+                                metrics_dict_copy["Percentiles"] = str_percentiles
 
-                                    output_parameter = metrics_dict_copy.pop("")
-                                    
-                                    if value_rounding >= 1:
-                                        for key in metrics_dict_copy.keys():
-                                            if key != "Percentiles":
-                                                metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
+                                metrics_dict_copy["time"] = lines[1].split(',')[0] # adding the time to the metrics dictionnary
 
-                                    if output_parameter in output_parameters: # adding the metrics dictionnary
-                                        results_dict[model_name][physical_model][data_filter][output_parameter] = metrics_dict_copy
-            
-            # creating the dataframe as is shown in the docstring
-            rows = []
-            for model_name, physical_model_dict in results_dict.items():
-                for physical_model, data_filter_dict in physical_model_dict.items():
-                    for data_filter, output_parameter_dict in data_filter_dict.items():
-                        for output_parameter, metrics_dict in output_parameter_dict.items():
-                            row = {"model": model_name, "physical_model": physical_model, "filter": data_filter, "output_parameter": output_parameter}
-                            row.update(metrics_dict)
-                            rows.append(row)
-            df = pd.DataFrame(rows).set_index(["model", "physical_model", "filter", "output_parameter"])
+                                output_parameter = metrics_dict_copy.pop("")
+                                
+                                if value_rounding >= 1:
+                                    for key in metrics_dict_copy.keys():
+                                        if key != "Percentiles":
+                                            metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
 
-            pd.set_option('display.max_colwidth', None)
-            display(df)
+                                if output_parameter in output_parameters: # adding the metrics dictionnary
+                                    results_dict[model_name][physical_model][data_filter][output_parameter] = metrics_dict_copy
+        
+        # creating the dataframe as is shown in the docstring
+        rows = []
+        for model_name, physical_model_dict in results_dict.items():
+            for physical_model, data_filter_dict in physical_model_dict.items():
+                for data_filter, output_parameter_dict in data_filter_dict.items():
+                    for output_parameter, metrics_dict in output_parameter_dict.items():
+                        row = {"model": model_name, "physical_model": physical_model, "filter": data_filter, "output_parameter": output_parameter}
+                        row.update(metrics_dict)
+                        rows.append(row)
+        df = pd.DataFrame(rows).set_index(["model", "physical_model", "filter", "output_parameter"])
+
+        pd.set_option('display.max_colwidth', None)
+        display(df)
 
 
 if __name__ == "__main__":
