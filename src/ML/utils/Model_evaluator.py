@@ -16,7 +16,7 @@ from sklearn.metrics import explained_variance_score, max_error, mean_absolute_e
                             root_mean_squared_error, median_absolute_error
 from scipy.stats import pearsonr
 
-from ML.utils.utils import sanitize_path
+from ML.utils.utils import sanitize_path, smallest_encompassing_pair
 from ML.utils.Model_trainer import Model_trainer
 
 
@@ -34,8 +34,8 @@ class Model_evaluator():
     """
     def __init__(self, model_name : str, output_parameters : list[str], model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, categories : np.ndarray=None, # TODO? rajouter le temps dans le dict?
                  path : str=None, rve : bool=True, rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
-                 predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, category_residuals_histogram : bool=True, qq_plot : bool=True, 
-                 preds_plot : bool=True, category_preds_plot : bool=True, neg_preds_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
+                 predicted_truth_plot : bool=True, category_predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, 
+                 category_residuals_histogram : bool=True, qq_plot : bool=True, preds_plot : bool=True, category_preds_plot : bool=True, neg_preds_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
         Initializes the Model_evaluator class.
 
@@ -68,6 +68,7 @@ class Model_evaluator():
         self.maxe = maxe
         self.percentile = percentile
         self.predicted_truth_plot = predicted_truth_plot
+        self.category_predicted_truth_plot = category_predicted_truth_plot
         self.residuals_truth_plot = residuals_truth_plot
         self.residuals_boxplot = residuals_boxplot
         self.residuals_histogram = residuals_histogram
@@ -80,6 +81,7 @@ class Model_evaluator():
         self.metrics_dict = dict()
         self.plot_dict = dict()
     
+    # TODO rajouter les valeurs des nouveaux plot
     def set_metrics_values(self, all=True, rve=None, rmse=None, mae=None, medae=None, corr=None, maxe=None, percentile=None,
                     predicted_truth_plot=None, residuals_truth_plot=None, residuals_boxplot=None, residuals_histogram=None, qq_plot=None):
         """
@@ -195,6 +197,29 @@ class Model_evaluator():
             # self.plot_dict[parameter_name]['predicted_truth_plot'] = \
             #     self._test(xlabel='True Values', ylabel='Predicted Values', title=f'Predicted vs True Values for {parameter_name}', grid=False,
             #                funcs=[plt.scatter(truth, preds, alpha=0.5), plt.plot([min(truth), max(truth)], [min(truth), max(truth)], color='red', linestyle='--')])
+        if self.category_predicted_truth_plot:
+            self.plot_dict[parameter_name]['cat_predicted_truth_plot'] = dict()
+            for i, cat_name in enumerate(categories_name):
+                if cat_name == "Global":
+                    continue
+
+                a, b = smallest_encompassing_pair(len(np.unique(categories[i]))) # number of row, number of columns
+
+                category_plotted_predicted_truth = plt.figure(figsize=(5*a,4*b))
+                axes = category_plotted_predicted_truth.subplots(a, b)
+                for j, cat_value in enumerate(np.unique(categories[i])):
+                    mask = categories[i] == cat_value
+                    cat_truth = truth[mask] # all the truth from a certain category
+                    cat_preds = preds[mask] # all the preds from a certain category
+
+                    axes_x, axes_y = j//b, j%b
+                    axes[axes_x, axes_y].scatter(cat_truth, cat_preds, alpha=0.01)
+                    axes[axes_x, axes_y].plot([min(cat_truth), max(cat_truth)], [min(cat_truth), max(cat_truth)], color='red', linestyle='--')
+                    axes[axes_x, axes_y].set_xlabel('True Values')
+                    axes[axes_x, axes_y].set_ylabel('Predicted Values')
+                    axes[axes_x, axes_y].set_title(f"{cat_name}_{cat_value}")
+                # plt.title(f'Predicted vs True Values for {parameter_name} for category {cat_name}')
+                self.plot_dict[parameter_name]['cat_predicted_truth_plot'][cat_name] = category_plotted_predicted_truth
         if self.residuals_truth_plot: # TODO rajouter dans le mémoire si je le garde
             # similaire à celui du dessus, le garde?
             plotted_residuals_truth = plt.figure(figsize=(6,6))
@@ -230,9 +255,7 @@ class Model_evaluator():
                 if cat_name == "Global":
                     continue
 
-                num_cat = len(np.unique(categories[i]))
-                a = int(np.round(np.sqrt(num_cat))) # number of rows
-                b = (num_cat + a - 1) // a # number of columns
+                a, b = smallest_encompassing_pair(len(np.unique(categories[i]))) # number of row, number of columns
 
                 category_plotted_histogram = plt.figure(figsize=(5*a,4*b))
                 axes = category_plotted_histogram.subplots(a, b)
@@ -271,9 +294,7 @@ class Model_evaluator():
                 if cat_name == "Global":
                     continue
 
-                num_cat = len(np.unique(categories[i]))
-                a = int(np.round(np.sqrt(num_cat))) # number of rows
-                b = (num_cat + a - 1) // a # number of columns
+                a, b = smallest_encompassing_pair(len(np.unique(categories[i]))) # number of row, number of columns
 
                 category_plotted_preds = plt.figure(figsize=(5*a,4*b))
                 axes = category_plotted_preds.subplots(a, b)

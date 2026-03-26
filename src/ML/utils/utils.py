@@ -81,6 +81,20 @@ def print_all_uniques(df):
         else:
             print(f"{col_name}  : Range : {round(min(df[col_name]), 2)} - {round(max(df[col_name]), 4)}, Mean : {round(df[col_name].mean(), 4)}, Median : {round(df[col_name].median(), 4)}")
         print()
+
+def smallest_encompassing_pair(n : int) -> tuple[int, int]:
+    """
+    Gives the smallest pair of numbers possible which, when multiplied, are bigger than the input value.
+
+    Parameters:
+        n (int) : The number we want to encompass with the smallest pair of numbers possible
+    
+    Returns:
+        tuple (int, int) : The two numbers of the smallest pair of numbers possible
+    """
+    a = int(np.round(np.sqrt(n)))
+    b = (n + a - 1) // a 
+    return a, b
     
 
 def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None, value_rounding : int=-1) -> pd.DataFrame:
