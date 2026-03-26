@@ -503,6 +503,7 @@ class Model_evaluator():
     # TODO! ne fonctionne pas, pas encore fini
     def evaluate_model(self, model, X_test : np.ndarray, y_test : np.ndarray):
         """
+        not implemented
         Evaluates the given model on the test data and prints the metrics.
 
         Parameters:
@@ -599,6 +600,10 @@ class Model_evaluator():
                 print("Evaluating predictions...")
                 for i, output_param in enumerate(self.output_parameters):
                     self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show)
+                if save:
+                    print("Saving results...")
+                    self.save_model_evaluation(tag=tag, train_method="K_fold")
+
     
     def check_existing_results(self, tag : str, model_name : str=None, path : str=None, physical_model : str=None) -> bool:
         """
