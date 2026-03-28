@@ -160,6 +160,7 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
         print("Error : no results for any physical model exists.")
         sys.exit(1)
 
+    check_results_added = False
     init_metrics_path = path + f"{model_names[0]}/{physical_models[0]}/{data_filters[0]}/metrics/" 
     # all the metrics file should have the same name in every metrics directory
 
@@ -201,7 +202,12 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
                                             metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
 
                                 if output_parameter in output_parameters: # adding the metrics dictionnary
+                                    check_results_added = True
                                     results_dict[model_name][physical_model][data_filter][output_parameter] = metrics_dict_copy
+
+        if not check_results_added:
+            print("No results to show, please make sure that the output parameters are correct.")
+            sys.exit(1)
         
         # creating the dataframe as is shown in the docstring
         rows = []
