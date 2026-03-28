@@ -185,7 +185,7 @@ class Iso_data_handler():
         """
         if (physical_model == "MIST") and reclassify:
             csv_filename = f"{physical_model}_reclassified_iso_full_data.csv"
-        if (physical_model == "PARSEC") and rescale:
+        elif (physical_model == "PARSEC") and rescale:
             csv_filename = f"{physical_model}_rescaled_iso_full_data.csv"
         else:
             csv_filename = f"{physical_model}_iso_full_data.csv"
@@ -217,10 +217,10 @@ class Iso_data_handler():
                 full_iso_df = self.rescale_PARSEC_data(full_iso_df)
                 
             # saves the dataframe in a csv file
-            print(f"Writing {physical_model} dataframe to csv file...")
+            print(f"Writing {physical_model} dataframe to {csv_filename} file...")
             full_iso_df.to_csv(path + csv_filename, sep=',', encoding='utf-8', index=False, header=True)
         else:
-            print(f"Reading {physical_model} dataframe from csv file...")
+            print(f"Reading {physical_model} dataframe from {csv_filename} file...")
             full_iso_df = pd.read_csv(path + csv_filename)
         
         return full_iso_df[col_names]

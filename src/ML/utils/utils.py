@@ -209,7 +209,7 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
                                 if output_parameter in output_parameters: # adding the metrics dictionnary
                                     check_results_added = True
                                     results_dict[model_name][physical_model][data_filter][output_parameter] = metrics_dict_copy
-        print(results_dict)
+
         if not check_results_added:
             print("No results to show, please make sure that the output parameters are correct.")
             sys.exit(1)
