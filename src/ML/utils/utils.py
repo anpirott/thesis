@@ -198,13 +198,18 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
                                 
                                 if value_rounding >= 1:
                                     for key in metrics_dict_copy.keys():
-                                        if key != "Percentiles":
+                                        if key == "value range":
+                                            min_value, max_value = metrics_dict_copy[key].split(" - ")
+                                            min_value = round(eval(min_value), value_rounding)
+                                            max_value = round(eval(max_value), value_rounding)
+                                            metrics_dict_copy[key] = f"{min_value} - {max_value}"
+                                        elif key != "Percentiles":
                                             metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
 
                                 if output_parameter in output_parameters: # adding the metrics dictionnary
                                     check_results_added = True
                                     results_dict[model_name][physical_model][data_filter][output_parameter] = metrics_dict_copy
-
+        print(results_dict)
         if not check_results_added:
             print("No results to show, please make sure that the output parameters are correct.")
             sys.exit(1)
