@@ -97,17 +97,18 @@ def smallest_encompassing_pair(n : int) -> tuple[int, int]:
     return a, b
     
 
-def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None, value_rounding : int=-1, relative_values : bool=False) -> pd.DataFrame:
+def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None,
+                    value_rounding : int=-1, relative_values : bool=False) -> pd.DataFrame:
     """
     Compares the statistics between one or more models in a single table and displays it. # TODO? aussi le return?
     The path to the metrics and images needs to follow this hierarchy : path/to/results/(training_type/)model_name/physical_model/data_filter/
 
     Parameters:
         path (str) : path to the results folder containing the models
-        output_parameters list (str) : which output parameters of the model we want to add to the comparison
-        model_names list (str) : name of the models which need to be added to the comparison; if set to None, uses all possible values in the directory
-        physical_models list (str) : which physical model ("MIST" and "PARSEC") needs to be used in the comparison; if set to None, uses all possible values in the directory
-        data_filters list (str) : which filters need to be used in the comparison; if set to None, uses all possible values in the directory
+        output_parameters (list[str]) : which output parameters of the model we want to add to the comparison
+        model_names (list[str]) : name of the models which need to be added to the comparison; if set to None, uses all possible values in the directory
+        physical_models (list[str]) : which physical model ("MIST" and "PARSEC") needs to be used in the comparison; if set to None, uses all possible values in the directory
+        data_filters (list[str]) : which filters need to be used in the comparison; if set to None, uses all possible values in the directory
         value_rounding (int) : what rounding of the values needs to be applied; if smaller or equal to 0, does not round values
         relative_values (bool) : wether or not to use relative errors when comparing the models
     
