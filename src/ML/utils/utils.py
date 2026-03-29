@@ -97,17 +97,19 @@ def smallest_encompassing_pair(n : int) -> tuple[int, int]:
     return a, b
     
 
-def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None, value_rounding : int=-1) -> pd.DataFrame:
+def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None, value_rounding : int=-1, relative_values : bool=False) -> pd.DataFrame:
     """
     Compares the statistics between one or more models in a single table and displays it. # TODO? aussi le return?
     The path to the metrics and images needs to follow this hierarchy : path/to/results/(training_type/)model_name/physical_model/data_filter/
 
     Parameters:
         path (str) : path to the results folder containing the models
-        model_names list(str) : name of the models which need to be added to the comparison; if set to None, uses all possible values in the directory
-        physical_models list(str) : which physical model ("MIST" and "PARSEC") needs to be used in the comparison; if set to None, uses all possible values in the directory
-        data_filters list(str) : which filters need to be used in the comparison; if set to None, uses all possible values in the directory
-        output_parameters list(str) : which output parameters of the model we want to add to the comparison
+        output_parameters list (str) : which output parameters of the model we want to add to the comparison
+        model_names list (str) : name of the models which need to be added to the comparison; if set to None, uses all possible values in the directory
+        physical_models list (str) : which physical model ("MIST" and "PARSEC") needs to be used in the comparison; if set to None, uses all possible values in the directory
+        data_filters list (str) : which filters need to be used in the comparison; if set to None, uses all possible values in the directory
+        value_rounding (int) : what rounding of the values needs to be applied; if smaller or equal to 0, does not round values
+        relative_values (bool) : wether or not to use relative errors when comparing the models
     
     the dataframe has the following form:
 
@@ -195,8 +197,20 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
                                 metrics_dict_copy["time"] = lines[1].split(',')[0] # adding the time to the metrics dictionnary
 
                                 output_parameter = metrics_dict_copy.pop("")
-                                
-                                if value_rounding >= 1:
+
+                                if relative_values:
+                                    min_value, max_value = metrics_dict_copy["value range"].split(" - ")
+                                    denominator = eval(max_value) - eval(min_value) # the denominator which will be used to divide the values
+                                    for key in metrics_dict_copy.keys():
+                                        if key == "Percentiles":
+                                            str_percentiles = ""
+                                            percentiles_dict = eval("{" + f"{metrics_dict_copy[key].replace("/", ",")}" + "}")
+                                            for key_percentile in percentiles_dict.keys():
+                                                str_percentiles += f"{key_percentile} : {round((percentiles_dict[key_percentile]/denominator)*100, value_rounding)}% / "
+                                            metrics_dict_copy[key] = str_percentiles.removesuffix(" / ")
+                                        elif key != "value range" and key != "RVE" and key != "CORR" and key != "time":
+                                            metrics_dict_copy[key] = str(round((eval(metrics_dict_copy[key])/denominator)*100, value_rounding)) + "%"
+                                elif value_rounding >= 1:
                                     for key in metrics_dict_copy.keys():
                                         if key == "value range":
                                             min_value, max_value = metrics_dict_copy[key].split(" - ")
