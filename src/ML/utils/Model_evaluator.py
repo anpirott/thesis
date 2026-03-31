@@ -310,7 +310,7 @@ class Model_evaluator():
                 # plt.title(f'Histogram of Predictions for {parameter_name} for category {cat_name}')
                 self.plot_dict[parameter_name]['cat_preds_plot'][cat_name] = category_plotted_preds
         if self.neg_preds_plot:
-            mask = preds <= 0  # [False, True, False, True, False, True, False, True]
+            mask = preds < 0.1  # [False, True, False, True, False, True, False, True]
             filtered_preds = preds[mask]
             if len(filtered_preds) == 0:
                 print("no negative values")
@@ -320,7 +320,7 @@ class Model_evaluator():
                 plt.xlabel('Predictions')
                 plt.ylabel('Frequency')
                 plt.title(f'Histogram of negative predictions for {parameter_name}')
-                self.plot_dict[parameter_name]['preds_plot'] = plotted_neg_preds
+                self.plot_dict[parameter_name]['neg_preds_plot'] = plotted_neg_preds
         
         return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
     
