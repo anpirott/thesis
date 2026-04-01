@@ -122,7 +122,10 @@ class Data_visualiser():
             plt.ylabel("$\log(L/L_{\odot})$")
             plt.legend(title="Phases", fontsize="small", 
                     handles = [mlines.Line2D([], [], color=c_dict[key], label=f"{phase_dict[key]}") for key in c_dict.keys()])
-            plt.title(f"Metallicity = {metallicity}")
+            if len(ages) == 1:
+                plt.title(f"Metallicity = {metallicity}, $\log(Age)$ = {ages[0]}")
+            else:
+                plt.title(f"Metallicity = {metallicity}")
             plt.show()
 
     def plot_Kiel(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):

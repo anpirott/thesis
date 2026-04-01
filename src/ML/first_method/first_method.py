@@ -10,11 +10,13 @@ import random
 import pickle
 import joblib
 import sys
+import os
 
 from physics.Iso_data_handler import Iso_data_handler
 
 
-def first_method(age, metallicity, log_Teff, log_g, q, primary_mdl_path="model/primary_XGB.pkl", secondary_mdl_path="model/secondary_XGB.pkl"):
+def first_method(age, metallicity, log_Teff, log_g, q, primary_mdl_path="full_path_to_model", 
+                 secondary_mdl_path=r"full_path_to_model"):
     """
     First method to compute Teff, log_g and log_R of a secondary star given the age, metallicity, T_eff and log_g of the primary star as well as a mass ratio.
 
@@ -60,7 +62,7 @@ if __name__ == "__main__":
     row = test_df.loc[index]
 
     print("predicting values...")
-    log_R1, log_Teff2, log_g2, log_R2 = first_method(row["log10_isochrone_age_yr"], row["metallicity"], row["log_Teff"], row["log_g"], q)
+    star_mass1, log_R1, log_Teff2, log_g2, log_R2 = first_method(row["log10_isochrone_age_yr"], row["metallicity"], row["log_Teff"], row["log_g"], q)
     print(f"Primary star mass: {row['star_mass']}, log_Teff: {row['log_Teff']}, log_g: {row['log_g']}, log_R: {row['log_R']}")
     print(f"Primary star predicted log_R: {log_R1}")
     print(f"Secondary star mass: {row['star_mass'] * q}, log_Teff: {log_Teff2}, log_g: {log_g2}, log_R: {log_R2}")
