@@ -120,7 +120,7 @@ class Data_visualiser():
                 plt.ylim(y_lim[0], y_lim[1])
             plt.xlabel("$\log(T_{\mathrm{eff}}) [\mathrm{K}]$")
             plt.ylabel("$\log(L/L_{\odot})$")
-            plt.legend(title="Phases", fontsize="small", 
+            plt.legend(title="Phases", fontsize="small", loc='lower left',
                     handles = [mlines.Line2D([], [], color=c_dict[key], label=f"{phase_dict[key]}") for key in c_dict.keys()])
             if len(ages) == 1:
                 plt.title(f"Metallicity = {metallicity}, $\log(Age)$ = {ages[0]}")
@@ -173,7 +173,7 @@ class Data_visualiser():
             plt.gca().invert_yaxis()
             plt.xlabel("$\log(T_{\mathrm{eff}}) [\mathrm{K}]$")
             plt.ylabel("$\log(g) [\mathrm{cm/s^2}]$")
-            plt.legend(title="Phases", fontsize="small", 
+            plt.legend(title="Phases", fontsize="small", loc='upper left',
                     handles = [mlines.Line2D([], [], color=c_dict[key], label=f"{phase_dict[key]}") for key in c_dict.keys()])
             plt.title(f"Metallicity = {metallicity}")
             plt.show()
