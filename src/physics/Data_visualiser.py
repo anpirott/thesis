@@ -178,5 +178,15 @@ class Data_visualiser():
             plt.title(f"Metallicity = {metallicity}")
             plt.show()
 
+    def show_distribution(self, col_names : list[str]):
+        for cols in col_names:
+            distribution_plot = plt.figure(figsize=(6,6))
+            plt.hist(self.iso_df[cols], bins=60)
+            plt.xlabel('Value')
+            plt.ylabel('Frequency')
+            plt.title(f'Distribution of the {cols}')
+            plt.show()
+        return
+
 if __name__ == "__main__":
     pass
