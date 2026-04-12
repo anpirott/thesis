@@ -542,7 +542,7 @@ class Model_evaluator():
     
     def evaluate_Kfold_results(self, model : Callable, X_train : np.ndarray, y_train : np.ndarray, categories_train : np.ndarray, categories_name : list[str], 
                                path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool=False, 
-                               show_depth : bool=True, save : bool=True, add_global : bool=True, show : bool=True, **kwargs):
+                               show_depth : bool=True, save : bool=True, add_global : bool=True, show : bool=True, scaler_name : str=None, **kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
         Also saves the prediction, truth and categories in a ".npy" file.
@@ -560,6 +560,7 @@ class Model_evaluator():
             save (bool) : wether or not to save the results
             add_global (bool) : whether to add the global metrics (i.e. not separated by category) to the metrics_dict
             show (bool) : whether to show the metrics and plots
+            scaler_name (str) : name of the scaler to be used. Can be "power", "quantile", "robust" or "standard"
             **kwargs : additional arguments which will be passed to the model during training
         """
         if add_global: 
@@ -575,7 +576,7 @@ class Model_evaluator():
             else: # overriding, creating the results and predictions
                 print("Performing K-fold...")
                 start = time.time()
-                truth, preds, categories = Model_trainer.Kfold_pipeline(model, X=X_train, y=y_train, categories=categories_train, n_splits=n_splits, random_state=random_state, **kwargs)
+                truth, preds, categories = Model_trainer.Kfold_pipeline(model, X=X_train, y=y_train, categories=categories_train, n_splits=n_splits, random_state=random_state, scaler_name=scaler_name, **kwargs)
                 end = time.time()
                 print("Evaluating predictions...")
                 for i, output_param in enumerate(self.output_parameters):

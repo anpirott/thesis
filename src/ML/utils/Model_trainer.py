@@ -3,6 +3,7 @@ from collections.abc import Callable
 import sys
 
 from sklearn.model_selection import KFold
+from ML.utils.Data_preparator import Data_preparator
 
 import matplotlib.pyplot as plt
 
@@ -19,7 +20,7 @@ class Model_trainer():
     # TODO? rajouter le calcul du temps et le rajouter dans le csv
     @staticmethod
     def Kfold_pipeline(model : Callable, X : np.ndarray, y : np.ndarray, categories : np.ndarray, n_splits : int=10, 
-                       shuffle : bool=True, random_state : int=12, verbose : bool=True, **kwargs) -> tuple[list, list]:
+                       shuffle : bool=True, random_state : int=12, verbose : bool=True, scaler_name : str=None, **kwargs) -> tuple[list, list]:
         """
         Performs K-fold cross-validation on the given model and training data.
 
@@ -32,6 +33,8 @@ class Model_trainer():
             shuffle (bool) : whether to shuffle the data before splitting into folds
             random_state (int) : random seed for shuffling the data
             verbose (bool) : whether information during the training is shown or not
+            scaler_name (str) : name of the scaler to be used. Can be "power", "quantile", "robust" or "standard"
+            **kwargs : additional arguments which will be passed to the model during training
         
         Returns:
             tuple of three lists : a list containing the true values for each target across all folds,
@@ -53,6 +56,9 @@ class Model_trainer():
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
             categories_train, categories_test = categories[train_index], categories[test_index]
+
+            if scaler_name is not None:
+                X_train, X_test = Data_preparator.scale_data(X_train, X_test, scaler_name)
 
             mdl = model(**kwargs)
             mdl.fit(X_train, y_train)

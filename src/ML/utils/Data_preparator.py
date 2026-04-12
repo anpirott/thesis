@@ -4,6 +4,7 @@ import sys
 
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import PowerTransformer, QuantileTransformer, RobustScaler, StandardScaler
 
 
 # TODO rajouter les exceptions pour les erreurs
@@ -57,10 +58,31 @@ class Data_preparator():
                 sys.exit(1)
         return data_dff
     
-    # @staticmethod
-    # def scale_data(data_df : pd.DataFrame, scaler):
-    #     # TODO?
-    #     return
+    @staticmethod
+    def scale_data(X_train : np.ndarray, X_test : np.ndarray, scaler_name : str) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Scales the given dataframe according to the given scaler name.
+        Parameters:
+            data_df (numpy.ndarray) : dataframe to be scaled
+            scaler_name (str) : name of the scaler to be used. Can be "power", "quantile", "robust" or "standard"
+        Returns:
+            pandas.DataFrame : a pandas dataframe containing the scaled data
+        """
+        if scaler_name == "power":
+            scaler = PowerTransformer()
+        elif scaler_name == "quantile":
+            scaler = QuantileTransformer()
+        elif scaler_name == "robust":
+            scaler = RobustScaler()
+        elif scaler_name == "standard":
+            scaler = StandardScaler()
+        else:
+            print(f"Error: invalid scaler name '{scaler_name}'.")
+            sys.exit(1)
+        
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled  = scaler.transform(X_test)
+        return X_train_scaled, X_test_scaled
 
     @staticmethod
     def split_data(data_df : pd.DataFrame, x_cols : list, y_cols : list, categories_cols : list, test_size : float=0.25, shuffle : bool=True, random_state : int=None, print_stats : bool = False) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
