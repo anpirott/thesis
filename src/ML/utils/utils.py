@@ -96,9 +96,9 @@ def smallest_encompassing_pair(n : int) -> tuple[int, int]:
     b = (n + a - 1) // a 
     return a, b
     
-
+# TODO changer la fonction pour pouvoir demander seulement les catégories qu'on veut
 def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None,
-                    value_rounding : int=-1, relative_values : bool=False) -> pd.DataFrame:
+                    categories : list[str]=None, value_rounding : int=-1, relative_values : bool=False) -> pd.DataFrame:
     """
     Compares the statistics between one or more models in a single table and displays it. # TODO? aussi le return?
     The path to the metrics and images needs to follow this hierarchy : path/to/results/(training_type/)model_name/physical_model/data_filter/
@@ -109,6 +109,7 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
         model_names (list[str]) : name of the models which need to be added to the comparison; if set to None, uses all possible values in the directory
         physical_models (list[str]) : which physical model ("MIST" and "PARSEC") needs to be used in the comparison; if set to None, uses all possible values in the directory
         data_filters (list[str]) : which filters need to be used in the comparison; if set to None, uses all possible values in the directory
+        categories (list[str]) : which categories need to be used in the comparison; if set to None, uses all possible values in the directory
         value_rounding (int) : what rounding of the values needs to be applied; if smaller or equal to 0, does not round values
         relative_values (bool) : wether or not to use relative errors when comparing the models
     
@@ -169,6 +170,8 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
 
     for filename in os.listdir(init_metrics_path):
         cat_name, cat_value = filename.split("_")[0], filename.split("_")[1]
+        if categories is not None and cat_name not in categories:
+            continue
         print(f"Results for the {cat_name} category with a value of {cat_value}")
         results_dict = dict()
         for model_name in model_names:
@@ -199,27 +202,32 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
 
                                 output_parameter = metrics_dict_copy.pop("")
 
-                                if relative_values:
-                                    min_value, max_value = metrics_dict_copy["value range"].split(" - ")
-                                    denominator = eval(max_value) - eval(min_value) # the denominator which will be used to divide the values
-                                    for key in metrics_dict_copy.keys():
-                                        if key == "Percentiles":
-                                            str_percentiles = ""
-                                            percentiles_dict = eval("{" + f"{metrics_dict_copy[key].replace("/", ",")}" + "}")
-                                            for key_percentile in percentiles_dict.keys():
+                                min_value, max_value = metrics_dict_copy["value range"].split(" - ")
+                                denominator = eval(max_value) - eval(min_value) # the denominator which will be used to divide the values
+
+                                for key in metrics_dict_copy.keys():
+                                    if key == "Percentiles" and relative_values:
+                                        str_percentiles = ""
+                                        percentiles_dict = eval("{" + f"{metrics_dict_copy[key].replace("/", ",")}" + "}")
+                                        for key_percentile in percentiles_dict.keys():
+                                            if value_rounding >= 1:
                                                 str_percentiles += f"{key_percentile} : {round((percentiles_dict[key_percentile]/denominator)*100, value_rounding)}% / "
-                                            metrics_dict_copy[key] = str_percentiles.removesuffix(" / ")
-                                        elif key != "value range" and key != "RVE" and key != "CORR" and key != "time":
-                                            metrics_dict_copy[key] = str(round((eval(metrics_dict_copy[key])/denominator)*100, value_rounding)) + "%"
-                                elif value_rounding >= 1:
-                                    for key in metrics_dict_copy.keys():
-                                        if key == "value range":
-                                            min_value, max_value = metrics_dict_copy[key].split(" - ")
-                                            min_value = round(eval(min_value), value_rounding)
-                                            max_value = round(eval(max_value), value_rounding)
-                                            metrics_dict_copy[key] = f"{min_value} - {max_value}"
-                                        elif key != "Percentiles":
-                                            metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
+                                            else:
+                                                str_percentiles += f"{key_percentile} : {(percentiles_dict[key_percentile]/denominator)*100}% / "
+                                        metrics_dict_copy[key] = str_percentiles.removesuffix(" / ")
+                                    elif key == "value range" and value_rounding >= 1:
+                                        min_value, max_value = metrics_dict_copy[key].split(" - ")
+                                        min_value = round(eval(min_value), value_rounding)
+                                        max_value = round(eval(max_value), value_rounding)
+                                        metrics_dict_copy[key] = f"{min_value} - {max_value}"
+                                    elif (key == "RVE" or key == "CORR" or key == "time") and value_rounding >= 1:
+                                        metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
+                                    elif value_rounding >= 1 and not relative_values and key != "Percentiles":
+                                        metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
+                                    elif value_rounding < 1 and relative_values and key != "value range" and key != "RVE" and key != "CORR" and key != "time":
+                                        metrics_dict_copy[key] = str((eval(metrics_dict_copy[key])/denominator)*100) + "%"
+                                    elif value_rounding >= 1 and relative_values and key != "RVE" and key != "CORR" and key != "time":
+                                        metrics_dict_copy[key] = str(round((eval(metrics_dict_copy[key])/denominator)*100, value_rounding)) + "%"
 
                                 if output_parameter in output_parameters: # adding the metrics dictionnary
                                     check_results_added = True
