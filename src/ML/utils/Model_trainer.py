@@ -15,9 +15,7 @@ class Model_trainer():
     Methods:
         Kfold_pipeline : performs K-fold cross-validation on the given model and training data
     """
-    # mettre les outputs (preds) du modèle dans un fichier csv pour utiliser plus tard, mis en pause parce que ça prend pas mal de place
     # TODO mettre la possibilité de rajouter des paramètres à tester dans le modèle
-    # TODO? rajouter le calcul du temps et le rajouter dans le csv
     @staticmethod
     def Kfold_pipeline(model : Callable, X : np.ndarray, y : np.ndarray, categories : np.ndarray, n_splits : int=10, 
                        shuffle : bool=True, random_state : int=12, verbose : bool=True, scaler_name : str=None, **kwargs) -> tuple[list, list]:

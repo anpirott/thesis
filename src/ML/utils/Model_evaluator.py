@@ -541,8 +541,8 @@ class Model_evaluator():
             plt.close('all')
     
     def evaluate_Kfold_results(self, model : Callable, X_train : np.ndarray, y_train : np.ndarray, categories_train : np.ndarray, categories_name : list[str], 
-                               path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool=False, 
-                               show_depth : bool=True, save : bool=True, add_global : bool=True, show : bool=True, scaler_name : str=None, **kwargs):
+                               path : str, tag : str, n_splits : int=10, random_state : int=12, override : bool=False, use_preds : bool=False,
+                               save : bool=True, add_global : bool=True, show : bool=True, scaler_name : str=None, **kwargs):
         """
         Generates K-fold cross-validation results for the given model and training data.
         Also saves the prediction, truth and categories in a ".npy" file.
@@ -551,10 +551,12 @@ class Model_evaluator():
             model (Callable) : machine learning model to be trained
             X_train (numpy.ndarray) : training features
             y_train (numpy.ndarray) : training targets
-            categories_train (numpy.ndarray) : training categories of the values
+            categories_train (numpy.ndarray) : categories of the training values
             categories_name (list[str]) : list containing the names of the different categories in the same order as in categories_train
-            tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
             path (str) : path to the directory in which the predictions and truths will be saved
+            tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
+            n_splits (int) : how many splits to use during K-fold cross-validation
+            random_state (int) : seed for the randomization
             override (bool) : whether to override existing results or use the existing ones
             use_preds (bool) : whether to use existing predictions instead of generating new ones
             save (bool) : wether or not to save the results
@@ -572,7 +574,7 @@ class Model_evaluator():
         print(f"\n{tag} train data :")
         if not use_preds: # not using the existing predictions
             if not override and self.check_existing_results(tag): # not overriding, results need to exist and we show if that is the case, results are not recreated
-                self.show_existing_results(tag) # TODO encore ça à faire et la fonction de comparaison
+                self.show_existing_results(tag)
             else: # overriding, creating the results and predictions
                 print("Performing K-fold...")
                 start = time.time()
@@ -604,6 +606,76 @@ class Model_evaluator():
                 if save:
                     print("Saving results...")
                     self.save_model_evaluation(tag=tag, train_method="K_fold")
+    
+    def evaluate_ivs_results(self, model : Callable, X_train : np.ndarray, X_ivs : np.ndarray, y_train : np.ndarray, y_ivs : np.ndarray, 
+                             categories_train : np.ndarray, categories_ivs : np.ndarray, categories_name : list[str], path : str, tag : str, override : bool=False, 
+                             use_preds : bool=False, save : bool=True, add_global : bool=True, show : bool=True, **kwargs):
+        """
+        Generates IVS results for the given model, training data and IVS.
+        Also saves the prediction, truth and categories in a ".npy" file.
+
+        Parameters:
+            model (Callable) : machine learning model to be trained
+            X_train (numpy.ndarray) : training features
+            X_ivs (numpy.ndarray) : testing features
+            y_train (numpy.ndarray) : training targets
+            y_ivs (numpy.ndarray) : testing targets
+            categories_train (numpy.ndarray) : categories of the training values
+            categories_ivs (numpy.ndarray) : categories of the IVS values
+            categories_name (list[str]) : list containing the names of the different categories in the same order as in categories_train
+            path (str) : path to the directory in which the predictions and truths will be saved
+            tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
+            override (bool) : whether to override existing results or use the existing ones
+            use_preds (bool) : whether to use existing predictions instead of generating new ones
+            save (bool) : wether or not to save the results
+            add_global (bool) : whether to add the global metrics (i.e. not separated by category) to the metrics_dict
+            show (bool) : whether to show the metrics and plots
+            **kwargs : additional arguments which will be passed to the model during training
+        """
+        if add_global: 
+            categories_train = np.append(categories_train, [[1] for _ in range(len(categories_train))], axis=1)
+            if "Global" not in categories_name: # second condition for running the same cell multiple times in a jupyter notebook
+                categories_name.append("Global")
+            # adds a column to categories_name with the value 1 for all rows
+
+        print(f"\n{tag} train data :")
+        if not use_preds: # not using the existing predictions
+            if not override and self.check_existing_results(tag): # not overriding, results need to exist and we show if that is the case, results are not recreated
+                self.show_existing_results(tag)
+            else: # overriding, creating the results and predictions
+                print("Training model...")
+                start = time.time()
+                mdl = model(**kwargs)
+                mdl.fit(X_train, y_train)
+                preds = mdl.predict(X_ivs)
+                end = time.time()
+                print("Evaluating predictions...")
+                for i, output_param in enumerate(self.output_parameters):
+                    self.evaluate_predictions(y_ivs[i], preds[i], categories_ivs, categories_name, output_param, show=show)
+                if save:
+                    print("Saving predictions and results...")
+                    self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
+                    self.save_numpy_array(y_ivs, path, f"{tag}_truths.npy")
+                    self.save_numpy_array(categories_ivs, path, f"{tag}_categories.npy")
+                    self.save_model_evaluation(tag=tag, time=end-start, train_method="IVS")
+        if use_preds: # using the existing predictions
+            if override: # overriding, we do not allow this case
+                print("Error: cannot override when using existing predictions. Set either override or use_preds to False.")
+                sys.exit(1)
+            elif not override: # not overriding, we use the existing predictions if they exist and do not save the results
+                if not os.path.exists(path + f"{self.model_name}"): # TODO? utilisation de self.model_name, si pas spécifié ça créé un problème
+                    print("Error: predictions do not exist.")
+                    sys.exit(1)
+                preds = self.load_numpy_array(path, f"{tag}_predictions.npy")
+                truth = self.load_numpy_array(path, f"{tag}_truths.npy")
+                categories = self.load_numpy_array(path, f"{tag}_categories.npy")
+                print("Evaluating predictions...")
+                for i, output_param in enumerate(self.output_parameters):
+                    self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show)
+                if save:
+                    print("Saving results...")
+                    self.save_model_evaluation(tag=tag, train_method="IVS")
+        return
 
     
     def check_existing_results(self, tag : str, model_name : str=None, path : str=None, physical_model : str=None) -> bool:
