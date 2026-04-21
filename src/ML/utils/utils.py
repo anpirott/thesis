@@ -7,6 +7,7 @@ import csv
 import copy
 from IPython.display import display
 from pathlib import Path
+from sklearn.metrics import max_error
 
 
 def sanitize_path(path : str) -> str:
@@ -96,7 +97,6 @@ def smallest_encompassing_pair(n : int) -> tuple[int, int]:
     b = (n + a - 1) // a 
     return a, b
     
-# TODO changer la fonction pour pouvoir demander seulement les catégories qu'on veut
 def compare_metrics(path : str, output_parameters : list[str], model_names : list[str]=None, physical_models : list[str]=None, data_filters : list[str]=None,
                     categories : list[str]=None, value_rounding : int=-1, relative_values : bool=False) -> pd.DataFrame:
     """
@@ -250,6 +250,12 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
 
         pd.set_option('display.max_colwidth', None)
         display(df)
+    
+def max_error_single(y_true, y_pred):
+    """
+    Uses the max_error metric from sklearn with only the first output
+    """
+    return max_error(y_true[:, 0], y_pred[:, 0])
 
 
 if __name__ == "__main__":
