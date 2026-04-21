@@ -633,17 +633,20 @@ class Model_evaluator():
             **kwargs : additional arguments which will be passed to the model during training
         """
         if add_global: 
-            categories_train = np.append(categories_train, [[1] for _ in range(len(categories_train))], axis=1)
+            categories_ivs = np.append(categories_ivs, [[1] for _ in range(len(categories_ivs))], axis=1)
             if "Global" not in categories_name: # second condition for running the same cell multiple times in a jupyter notebook
                 categories_name.append("Global")
             # adds a column to categories_name with the value 1 for all rows
+            categories = [] # transforming the array to be the same way as categories from the "evaluate_Kfold_results" function
+            for i in range(categories_ivs.shape[1]):
+                categories.append(categories_ivs[:, i])
 
         print(f"\n{tag} train data :")
         if not use_preds: # not using the existing predictions
             if not override and self.check_existing_results(tag): # not overriding, results need to exist and we show if that is the case, results are not recreated
                 self.show_existing_results(tag)
             else: # overriding, creating the results and predictions
-                print("Training model...")
+                print("Training the model...")
                 start = time.time()
                 mdl = model(**kwargs)
                 mdl.fit(X_train, y_train)
@@ -651,12 +654,12 @@ class Model_evaluator():
                 end = time.time()
                 print("Evaluating predictions...")
                 for i, output_param in enumerate(self.output_parameters):
-                    self.evaluate_predictions(y_ivs[i], preds[i], categories_ivs, categories_name, output_param, show=show)
+                    self.evaluate_predictions(y_ivs[:, i], preds[:, i], categories, categories_name, output_param, show=show)
                 if save:
                     print("Saving predictions and results...")
                     self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
                     self.save_numpy_array(y_ivs, path, f"{tag}_truths.npy")
-                    self.save_numpy_array(categories_ivs, path, f"{tag}_categories.npy")
+                    self.save_numpy_array(categories, path, f"{tag}_categories.npy")
                     self.save_model_evaluation(tag=tag, time=end-start, train_method="IVS")
         if use_preds: # using the existing predictions
             if override: # overriding, we do not allow this case
