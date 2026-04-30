@@ -27,12 +27,12 @@ import sys
 import math
 
 
-def first_method(age, metallicity, log_Teff, log_g, q, model_A_path, model_B_path):
+def first_method(log_age, metallicity, log_Teff, log_g, q, model_A_path, model_B_path):
     """
-    First method to compute Teff, log_g and log_R of a secondary star given the age, metallicity, T_eff and log_g of the primary star as well as a mass ratio.
+    First method to compute Teff, log_g and log_R of a secondary star given the log_age, metallicity, T_eff and log_g of the primary star as well as a mass ratio.
 
     Parameters:
-        age (float) : log10 of the age of the system in years
+        log_age (float) : log10 of the age of the system in years
         metallicity (float) : metallicity of the system
         log_Teff (float) : log10 of the effective temperature of the primary star
         log_g (float) : log10 of the surface gravity of the primary star
@@ -53,31 +53,63 @@ def first_method(age, metallicity, log_Teff, log_g, q, model_A_path, model_B_pat
     # TODO dans un deuxième temps, pour les modèles, donner l'erreur associé quand on l'utilise
 
     # Predict the mass and radius of the primary star
-    star_mass1, log_R1 = model_A.predict([[age, metallicity, log_Teff, log_g]]).flatten()
+    star_mass1, log_R1 = model_A.predict([[log_age, metallicity, log_Teff, log_g]]).flatten()
     star_mass2 = star_mass1 * q # TODO! gros souci si on demande de donner une valeur qui n'est pas possible dans une isochrone
 
     # Predict the effective temperature, surface gravity and radius of the secondary star
-    log_Teff2, log_g2, log_R2 = model_B.predict([[age, metallicity, star_mass2, log_R1]]).flatten()
+    log_Teff2, log_g2, log_R2 = model_B.predict([[log_age, metallicity, star_mass2, log_R1]]).flatten()
 
     return star_mass1, log_R1, log_Teff2, log_g2, log_R2
 
+def interactive_first_method():
+    """
+    First method to compute Teff, log_g and log_R of a secondary star given the log_age, metallicity, T_eff and log_g of the primary star as well as a mass ratio.
+    Is interactive through the shell terminal, loads the model once and can predict multiple values one after the other
+    """
+    model_A_path = input("Model A path : ")
+    model_B_path = input("Model B path : ")
+    print("Loading models...")
+    model_A = joblib.load(model_A_path)
+    model_B = joblib.load(model_B_path)
+    
+    print("To quit, press ctrl+C.")
+    while True:
+        log_age, metallicity, log_Teff1, log_g1, q = input("Star parameters (log_age, metallicity, log_Teff primary, log_g primary, q): ").split(" ")
+        log_age, metallicity, log_Teff1, log_g1, q = float(log_age), float(metallicity), float(log_Teff1), float(log_g1), float(q)
+
+        print("Predicting values...")
+        # Predict the mass and radius of the primary star
+        star_mass1, log_R1 = model_A.predict([[log_age, metallicity, log_Teff1, log_g1]]).flatten()
+        star_mass2 = star_mass1 * q
+
+        # Predict the effective temperature, surface gravity and radius of the secondary star
+        log_Teff2, log_g2, log_R2 = model_B.predict([[log_age, metallicity, star_mass2, log_R1]]).flatten()
+
+        print(f"Primary star parameters : age : {log_age}, metallicity : {metallicity}, mass : {star_mass1}, log_Teff : {log_Teff1}, log_g : {log_g1}, radius : {log_R1}")
+        print(f"Secondary star parameters : age : {log_age}, metallicity : {metallicity}, mass : {star_mass2}, log_Teff : {log_Teff2}, log_g : {log_g2}, radius : {log_R2}")
 
 
 if __name__ == "__main__":
-    age = float(sys.argv[1])
-    if age > 100:
-        age = math.log10(age)
-    metallicity = float(sys.argv[2])
-    log_Teff1 = float(sys.argv[3])
-    log_g1 = float(sys.argv[4])
-    q = float(sys.argv[5])
-    model_A_path = str(sys.argv[6])
-    model_B_path = str(sys.argv[7])
+    if sys.argv[1] == "interactif":
+        interactive_first_method()
+    else:
+        age = float(sys.argv[1])
+        if age > 100:
+            age = math.log10(age)
+        metallicity = float(sys.argv[2])
+        log_Teff1 = float(sys.argv[3])
+        log_g1 = float(sys.argv[4])
+        q = float(sys.argv[5])
+        model_A_path = str(sys.argv[6])
+        model_B_path = str(sys.argv[7])
 
-    print("Predicting values...")
-    star_mass1, log_R1, log_Teff2, log_g2, log_R2 = first_method(age, metallicity, log_Teff1, log_g1, q, model_A_path, model_B_path)
-    print(f"Primary star parameters : age : {age}, metallicity : {metallicity}, mass : {star_mass1}, log_Teff : {log_Teff1}, log_g : {log_g1}, radius : {log_R1}")
-    print(f"Primary star parameters : age : {age}, metallicity : {metallicity}, mass : {star_mass1*q}, log_Teff : {log_Teff2}, log_g : {log_g2}, radius : {log_R2}")
+        print("Predicting values...")
+        star_mass1, log_R1, log_Teff2, log_g2, log_R2 = first_method(age, metallicity, log_Teff1, log_g1, q, model_A_path, model_B_path)
+        print(f"Primary star parameters : age : {age}, metallicity : {metallicity}, mass : {star_mass1}, log_Teff : {log_Teff1}, log_g : {log_g1}, radius : {log_R1}")
+        print(f"Secondary star parameters : age : {age}, metallicity : {metallicity}, mass : {star_mass1*q}, log_Teff : {log_Teff2}, log_g : {log_g2}, radius : {log_R2}")
+
+
+    # faire une version où un prompt avec des input() demande les paramètres mais où on ne load le modèle qu'une seule fois
 
 
     # from physics.Iso_data_handler import Iso_data_handler
