@@ -87,15 +87,20 @@ ipykernel==7.1.0
     #   jupyter
     #   jupyter-console
     #   jupyterlab
+ipympl==0.10.0
+    # via thesis (pyproject.toml)
 ipython==9.7.0
     # via
     #   ipykernel
+    #   ipympl
     #   ipywidgets
     #   jupyter-console
 ipython-pygments-lexers==1.1.1
     # via ipython
 ipywidgets==8.1.8
-    # via jupyter
+    # via
+    #   ipympl
+    #   jupyter
 isoduration==20.11.0
     # via jsonschema
 jedi==0.19.2
@@ -180,6 +185,7 @@ markupsafe==3.0.3
 matplotlib==3.10.7
     # via
     #   thesis (pyproject.toml)
+    #   ipympl
     #   seaborn
 matplotlib-inline==0.2.1
     # via
@@ -211,13 +217,16 @@ numpy==2.3.5
     #   thesis (pyproject.toml)
     #   astropy
     #   contourpy
+    #   ipympl
     #   matplotlib
     #   optuna
     #   pandas
+    #   patsy
     #   pyerfa
     #   scikit-learn
     #   scipy
     #   seaborn
+    #   statsmodels
     #   xgboost
 optuna==4.6.0
     # via thesis (pyproject.toml)
@@ -232,16 +241,22 @@ packaging==25.0
     #   matplotlib
     #   nbconvert
     #   optuna
+    #   statsmodels
 pandas==2.3.3
     # via
     #   thesis (pyproject.toml)
     #   seaborn
+    #   statsmodels
 pandocfilters==1.5.1
     # via nbconvert
 parso==0.8.5
     # via jedi
+patsy==1.0.2
+    # via statsmodels
 pillow==12.0.0
-    # via matplotlib
+    # via
+    #   ipympl
+    #   matplotlib
 platformdirs==4.5.0
     # via jupyter-core
 prometheus-client==0.23.1
@@ -319,6 +334,7 @@ scipy==1.16.3
     # via
     #   thesis (pyproject.toml)
     #   scikit-learn
+    #   statsmodels
     #   xgboost
 seaborn==0.13.2
     # via thesis (pyproject.toml)
@@ -340,6 +356,8 @@ sqlalchemy==2.0.44
     #   optuna
 stack-data==0.6.3
     # via ipython
+statsmodels==0.14.6
+    # via thesis (pyproject.toml)
 terminado==0.18.1
     # via
     #   jupyter-server
@@ -361,6 +379,7 @@ tqdm==4.67.1
 traitlets==5.14.3
     # via
     #   ipykernel
+    #   ipympl
     #   ipython
     #   ipywidgets
     #   jupyter-client
