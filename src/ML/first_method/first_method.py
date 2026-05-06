@@ -66,15 +66,17 @@ def interactive_first_method():
     First method to compute Teff, log_g and log_R of a secondary star given the log_age, metallicity, T_eff and log_g of the primary star as well as a mass ratio.
     Is interactive through the shell terminal, loads the model once and can predict multiple values one after the other
     """
-    model_A_path = input("Model A path : ")
-    model_B_path = input("Model B path : ")
+    model_A_path = "to_change"
+    model_B_path = "to_change"
+    print(f"Model A : {model_A_path}")
+    print(f"Model B : {model_B_path}")
     print("Loading models...")
     model_A = joblib.load(model_A_path)
     model_B = joblib.load(model_B_path)
     
     print("To quit, press ctrl+C.")
     while True:
-        log_age, metallicity, log_Teff1, log_g1, q = input("Star parameters (log_age, metallicity, log_Teff primary, log_g primary, q): ").split(" ")
+        log_age, metallicity, log_Teff1, log_g1, q = input("Star parameters (age (in Gy), metallicity (in dex), T_eff primary (in K), log_g primary (in cm/s^2), q): ").split(" ")
         log_age, metallicity, log_Teff1, log_g1, q = float(log_age), float(metallicity), float(log_Teff1), float(log_g1), float(q)
 
         print("Predicting values...")
