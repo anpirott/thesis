@@ -57,7 +57,7 @@ def first_method(log_age, metallicity, log_Teff, log_g, q, model_A_path, model_B
     star_mass2 = star_mass1 * q # TODO! gros souci si on demande de donner une valeur qui n'est pas possible dans une isochrone
 
     # Predict the effective temperature, surface gravity and radius of the secondary star
-    log_Teff2, log_g2, log_R2 = model_B.predict([[log_age, metallicity, star_mass2, log_R1]]).flatten()
+    log_Teff2, log_g2, log_R2 = model_B.predict([[log_age, metallicity, star_mass2]]).flatten()
 
     return star_mass1, log_R1, log_Teff2, log_g2, log_R2
 
@@ -85,7 +85,7 @@ def interactive_first_method():
         star_mass2 = star_mass1 * q
 
         # Predict the effective temperature, surface gravity and radius of the secondary star
-        log_Teff2, log_g2, log_R2 = model_B.predict([[log_age, metallicity, star_mass2, log_R1]]).flatten()
+        log_Teff2, log_g2, log_R2 = model_B.predict([[log_age, metallicity, star_mass2]]).flatten()
 
         print(f"Primary star parameters : age : {log_age}, metallicity : {metallicity}, mass : {star_mass1}, log_Teff : {log_Teff1}, log_g : {log_g1}, radius : {log_R1}")
         print(f"Secondary star parameters : age : {log_age}, metallicity : {metallicity}, mass : {star_mass2}, log_Teff : {log_Teff2}, log_g : {log_g2}, radius : {log_R2}")
