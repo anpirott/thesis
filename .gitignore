@@ -4,6 +4,7 @@ data/MIST_v1.2_vvcrit0.0_basic_isos.txz
 data/EEP_tracks
 data/PARSEC/PARSEC_iso_full_data.csv
 data/PARSEC/PARSEC_rescaled_iso_full_data.csv
+model/
 __pycache__
 .ipynb_checkpoints/
 notes_données.txt

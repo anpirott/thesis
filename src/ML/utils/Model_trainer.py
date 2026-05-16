@@ -65,12 +65,6 @@ class Model_trainer():
                 print(mdl.best_loss_)
             fold_preds = mdl.predict(X_test)
 
-            # if show_depth:
-            #     max_depth = list()
-            #     for tree in mdl.estimators_:
-            #         max_depth.append(tree.tree_.max_depth)
-            #     print("avg max depth %0.1f" % (sum(max_depth) / len(max_depth)))
-
             for i in range(y.shape[1]):
                 if truth[i] is None:
                     truth[i] = y_test[:, i]
