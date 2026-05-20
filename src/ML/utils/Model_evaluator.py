@@ -19,7 +19,7 @@ from sklearn.metrics import explained_variance_score, max_error, mean_absolute_e
                             root_mean_squared_error, median_absolute_error
 from scipy.stats import pearsonr
 
-from ML.utils.utils import sanitize_path, smallest_encompassing_pair, percentile_90
+from ML.utils.utils import sanitize_path, smallest_encompassing_pair
 from ML.utils.Model_trainer import Model_trainer
 
 
@@ -354,35 +354,29 @@ class Model_evaluator():
         if self.input_err_plot and inputs is not None:
             num_cols = len(inputs[0])
             indexes = list(combinations(range(0, num_cols), 2)) # getting all the combinations of values of size 2
-            for i, j in indexes:
+
+            a, b = smallest_encompassing_pair(len(indexes)) # number of row, number of columns
+
+            input_err_plotted_heatmap = plt.figure(figsize=(6*b,6*a))
+            axes = input_err_plotted_heatmap.subplots(a, b)
+            for count, index in enumerate(indexes):
+                i, j = index
                 x_values = inputs[:, i]
                 y_values = inputs[:, j]
 
-                # creating the statistics on the error
-                # result, x_edges, y_edges, _ = binned_statistic_2d(x_values, y_values, residuals, statistic="mean", bins=10)
-                result, x_edges, y_edges, _ = binned_statistic_2d(x_values, y_values, absolute_residuals, statistic="mean", bins=30)
+                result, x_edges, y_edges, _ = binned_statistic_2d(x_values, y_values, residuals, statistic="mean", bins=50)
                 
                 df = pd.DataFrame(result.T,
                                 index=np.round(y_edges[:-1], 2),
                                 columns=np.round(x_edges[:-1], 2))
-                
-                # creating a map of colors where 0 is the lightest and the more differences there are to 0, the darker the value gets
-                half = plt.cm.get_cmap("OrRd", 128)
-                colors = np.vstack([half(np.linspace(1, 0, 128)),
-                                    half(np.linspace(0, 1, 128))])
-                mirror_cmap = LinearSegmentedColormap.from_list("mirror_OrRd", colors)
-                
-                input_err_plot = plt.figure(figsize=(7,7))
-                sns.heatmap(df, annot=False, fmt=".3f", cmap=mirror_cmap, linewidths=0.3, linecolor="white", norm=TwoSlopeNorm(vcenter=0))
-                plt.title(f"Heatmap of the residuals for the {output_name} - mean value per bin")
-                plt.xlabel(inputs_col_names[i])
-                plt.ylabel(inputs_col_names[j]) # TODO sauvegarder
-                # plt.tight_layout()
-                # plt.savefig("heatmap.png", dpi=150)
-                plt.show()
-            # prendre la vérité et voir l'erreur que ça donne en fonction des preds
-            # plotter les erreurs pour voir quelles zone des paramètres donnes les plus grandes erreurs
-            # utiliser les inputs ou les outputs? sauvegarder les inputs comme les présictions et le vérités?
+
+                axes_x, axes_y = count//b, count%b
+                print(axes_x, axes_y)
+                sns.heatmap(df, annot=False, fmt=".3f", cmap="RdYlBu_r", linewidths=0.2, linecolor="white", norm=TwoSlopeNorm(vcenter=0), ax=axes[axes_x, axes_y])
+                axes[axes_x, axes_y].set_xlabel(inputs_col_names[i])
+                axes[axes_x, axes_y].set_ylabel(inputs_col_names[j])
+                # axes[axes_x, axes_y].set_title(f"Heatmap of the residuals for the {output_name} - mean value per bin")
+            self.plot_dict[parameter_name]['input_err_plot'] = input_err_plotted_heatmap
         
         return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
     
