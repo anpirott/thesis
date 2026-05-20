@@ -2,6 +2,7 @@ import numpy as np
 import scipy.stats as stats
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.colors import  LinearSegmentedColormap, TwoSlopeNorm
 import seaborn as sns
 import sys
 import os
@@ -11,12 +12,14 @@ import copy
 from collections.abc import Callable
 from IPython.display import Image
 from IPython.display import display
+from itertools import combinations
+from scipy.stats import binned_statistic_2d
 
 from sklearn.metrics import explained_variance_score, max_error, mean_absolute_error,\
                             root_mean_squared_error, median_absolute_error
 from scipy.stats import pearsonr
 
-from ML.utils.utils import sanitize_path, smallest_encompassing_pair
+from ML.utils.utils import sanitize_path, smallest_encompassing_pair, percentile_90
 from ML.utils.Model_trainer import Model_trainer
 
 
@@ -35,7 +38,7 @@ class Model_evaluator():
     def __init__(self, model_name : str, output_parameters : list[str], model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, categories : np.ndarray=None, # TODO? rajouter le temps dans le dict?
                  path : str=None, rve : bool=True, rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
                  predicted_truth_plot : bool=True, category_predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, 
-                 category_residuals_histogram : bool=True, qq_plot : bool=True, preds_plot : bool=True, category_preds_plot : bool=True, neg_preds_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
+                 category_residuals_histogram : bool=True, qq_plot : bool=True, preds_plot : bool=True, category_preds_plot : bool=True, neg_preds_plot : bool=True, input_err_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
         Initializes the Model_evaluator class.
 
@@ -77,33 +80,42 @@ class Model_evaluator():
         self.preds_plot = preds_plot
         self.category_preds_plot = category_preds_plot
         self.neg_preds_plot = neg_preds_plot
+        self.input_err_plot = input_err_plot
 
         self.metrics_dict = dict()
         self.plot_dict = dict()
     
     # TODO rajouter les valeurs des nouveaux plot
-    def set_metrics_values(self, all=True, rve=None, rmse=None, mae=None, medae=None, corr=None, maxe=None, percentile=None,
-                    predicted_truth_plot=None, residuals_truth_plot=None, residuals_boxplot=None, residuals_histogram=None, qq_plot=None):
+    def set_metrics_values(self, all_metrics=None, rve=None, rmse=None, mae=None, medae=None, corr=None, maxe=None, percentile=None,
+                    predicted_truth_plot=None, category_predicted_truth_plot=None, residuals_truth_plot=None, residuals_boxplot=None, 
+                    residuals_histogram=None, category_residuals_histogram=None, qq_plot=None, preds_plot=None, category_preds_plot=None,
+                    neg_preds_plot=None, input_err_plot=None):
         """
         Sets the metrics to be computed/plots to be generated.
 
         Parameters:
-            all (bool) : if set to True, sets all metrics/plots to True
+            all_metrics (bool) : if set to True or False, sets all metrics/plots to True or False accordingly
             every other parameter (bool or list of int) : if not set to None, sets the corresponding metric/plot to the given value
         """
-        if all:
-            self.rve = True
-            self.rmse = True
-            self.mae = True
-            self.medae = True
-            self.corr = True
-            self.maxe = True
-            self.percentile = (75, 90, 95, 99)
-            self.predicted_truth_plot = True
-            self.residuals_truth_plot = True
-            self.residuals_boxplot = True
-            self.residuals_histogram = True
-            self.qq_plot = True
+        if all_metrics is not None:
+            self.rve = all_metrics
+            self.rmse = all_metrics
+            self.mae = all_metrics
+            self.medae = all_metrics
+            self.corr = all_metrics
+            self.maxe = all_metrics
+            self.percentile = (75, 90, 95, 99) if all_metrics else None
+            self.predicted_truth_plot = all_metrics
+            self.category_predicted_truth_plot = all_metrics
+            self.residuals_truth_plot = all_metrics
+            self.residuals_boxplot = all_metrics
+            self.residuals_histogram = all_metrics
+            self.category_residuals_histogram = all_metrics
+            self.qq_plot = all_metrics
+            self.preds_plot = all_metrics
+            self.category_preds_plot = all_metrics
+            self.neg_preds_plot = all_metrics
+            self.input_err_plot = all_metrics
             return
         
         if rve is not None:
@@ -122,28 +134,45 @@ class Model_evaluator():
             self.percentile = percentile
         if predicted_truth_plot is not None:
             self.predicted_truth_plot = predicted_truth_plot
+        if category_predicted_truth_plot is not None:
+            self.category_predicted_truth_plot = category_predicted_truth_plot
         if residuals_truth_plot is not None:
             self.residuals_truth_plot = residuals_truth_plot
         if residuals_boxplot is not None:
             self.residuals_boxplot = residuals_boxplot
         if residuals_histogram is not None:
             self.residuals_histogram = residuals_histogram
+        if category_residuals_histogram is not None:
+            self.category_residuals_histogram = category_residuals_histogram
         if qq_plot is not None:
             self.qq_plot = qq_plot
+        if preds_plot is not None:
+            self.preds_plot = preds_plot
+        if category_preds_plot is not None:
+            self.category_preds_plot = category_preds_plot
+        if neg_preds_plot is not None:
+            self.neg_preds_plot = neg_preds_plot
+        if input_err_plot is not None:
+            self.input_err_plot = input_err_plot
 
     # TODO décrire tous les plots
 
     # TODO rajouter un plot qui montre plus en détail les hautes erreurs (jsp comment : les pourcentiles?, un cut sur les données pour voir les X plus grandes?, ...)
     # TODO faire un plot qui montre l'erreur proportionnelement à la valeur qu'il fallait prédire
-    def calculate_model_evaluation(self, parameter_name : str, categories_name : list[str], truth : np.ndarray=None, preds : np.ndarray=None, categories : np.ndarray=None) -> tuple[dict, dict]: #, metrics_dict : dict=None, plot_dict : dict=None) -> tuple[dict, dict]:
+    def calculate_model_evaluation(self, parameter_name : str, categories_name : list[str], truth : np.ndarray=None, preds : np.ndarray=None, categories : np.ndarray=None, 
+                                   inputs : np.ndarray=None, inputs_col_names : list[str]=None, output_name : str=None,) -> tuple[dict, dict]: #, metrics_dict : dict=None, plot_dict : dict=None) -> tuple[dict, dict]:
         """
         Calculates various metrics and plots for the given model predictions.
 
         Parameters:
             parameter_name (str) : name of the parameter being evaluated
+            categories_name (list[str]) : the name of the categories
             truth (numpy.ndarray) : true values
             preds (numpy.ndarray) : predicted values
             categories (numpy.ndarray) : categories of the values
+            inputs (numpy.ndarray) : the unscaled X_ivs array
+            inputs_col_names (list[str]) : the physical parameters of the input array
+            output_name (str) : the physical parameter of the output array
         
         Returns:
             tuple of two dicts : a dictionary containing the calculated metrics and a dictionary containing the generated plots
@@ -166,6 +195,7 @@ class Model_evaluator():
 
         residuals = preds - truth
         absolute_residuals = np.abs(preds - truth)
+        print(min(absolute_residuals))
 
         # if metrics_dict is None: # TODO? pour améliorer le code et pas tjs appeler self.metrics_dict
         #     metrics_dict = copy.deepcopy(self.metrics_dict)
@@ -321,6 +351,38 @@ class Model_evaluator():
                 plt.ylabel('Frequency')
                 plt.title(f'Histogram of negative predictions for {parameter_name}')
                 self.plot_dict[parameter_name]['neg_preds_plot'] = plotted_neg_preds
+        if self.input_err_plot and inputs is not None:
+            num_cols = len(inputs[0])
+            indexes = list(combinations(range(0, num_cols), 2)) # getting all the combinations of values of size 2
+            for i, j in indexes:
+                x_values = inputs[:, i]
+                y_values = inputs[:, j]
+
+                # creating the statistics on the error
+                # result, x_edges, y_edges, _ = binned_statistic_2d(x_values, y_values, residuals, statistic="mean", bins=10)
+                result, x_edges, y_edges, _ = binned_statistic_2d(x_values, y_values, absolute_residuals, statistic="mean", bins=30)
+                
+                df = pd.DataFrame(result.T,
+                                index=np.round(y_edges[:-1], 2),
+                                columns=np.round(x_edges[:-1], 2))
+                
+                # creating a map of colors where 0 is the lightest and the more differences there are to 0, the darker the value gets
+                half = plt.cm.get_cmap("OrRd", 128)
+                colors = np.vstack([half(np.linspace(1, 0, 128)),
+                                    half(np.linspace(0, 1, 128))])
+                mirror_cmap = LinearSegmentedColormap.from_list("mirror_OrRd", colors)
+                
+                input_err_plot = plt.figure(figsize=(7,7))
+                sns.heatmap(df, annot=False, fmt=".3f", cmap=mirror_cmap, linewidths=0.3, linecolor="white", norm=TwoSlopeNorm(vcenter=0))
+                plt.title(f"Heatmap of the residuals for the {output_name} - mean value per bin")
+                plt.xlabel(inputs_col_names[i])
+                plt.ylabel(inputs_col_names[j]) # TODO sauvegarder
+                # plt.tight_layout()
+                # plt.savefig("heatmap.png", dpi=150)
+                plt.show()
+            # prendre la vérité et voir l'erreur que ça donne en fonction des preds
+            # plotter les erreurs pour voir quelles zone des paramètres donnes les plus grandes erreurs
+            # utiliser les inputs ou les outputs? sauvegarder les inputs comme les présictions et le vérités?
         
         return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
     
@@ -508,8 +570,8 @@ class Model_evaluator():
 
         Parameters:
             model : trained machine learning model
-            X_test (np.ndarray) : dataset of the test features
-            y_test (np.ndarray) : dataset of the test targets
+            X_test (numpy.ndarray) : dataset of the test features
+            y_test (numpy.ndarray) : dataset of the test targets
         """
         # y_pred = model.predict(X_test)
         # for i, col in enumerate(y_test.columns):
@@ -517,14 +579,15 @@ class Model_evaluator():
         #     self.show_model_evaluation(col)
         pass
     
-    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, categories : np.ndarray, categories_name : list[str], parameter_name : str, show : bool=True):
+    def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, categories : np.ndarray, categories_name : list[str], parameter_name : str, show : bool=True, 
+                             inputs : np.ndarray=None, inputs_col_names : list[str]=None, output_name : str=None):
         """
         Evaluates the given predictions and prints the metrics.
 
         Parameters:
-            truth (np.ndarray) : true values
-            preds (np.ndarray) : predicted values
-            categories (np.ndarray) : categories of the values
+            truth (numpy.ndarray) : true values
+            preds (numpy.ndarray) : predicted values
+            categories (numpy.ndarray) : categories of the values
             categories_name (list[str]) : list containing the names of the different categories in the same order as in categories_train
             parameter_name (str) : name of the parameter being evaluated
             tag (str) : tag for the type of data used (e.g., "Base", "PCA", etc.)
@@ -532,8 +595,12 @@ class Model_evaluator():
             time (float) : time taken for the model to have been trained
             train_method (str) : what method was used to train the model (i.e. "K_fold" or "normal")
             show (bool) : whether to show the metrics and plots
+            inputs (numpy.ndarray) : the unscaled X_ivs array
+            inputs_col_names (list[str]) : the physical parameters of the input array
+            output_name (str) : the physical parameter of the output array
         """
-        self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds, categories=categories, categories_name=categories_name)
+        self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds, categories=categories, categories_name=categories_name, 
+                                        inputs=inputs, inputs_col_names=inputs_col_names, output_name=output_name)
         # self.metrics_dict, self.plot_dict = self.calculate_model_evaluation(parameter_name, truth=truth, preds=preds) # TODO? si je change le code comme le todo dans la fct
         if show:
             self.show_model_evaluation(categories_name=categories_name, parameter_name=parameter_name)
@@ -608,8 +675,9 @@ class Model_evaluator():
                     self.save_model_evaluation(tag=tag, train_method="K_fold")
     
     def evaluate_ivs_results(self, model : Callable, X_train : np.ndarray, X_ivs : np.ndarray, y_train : np.ndarray, y_ivs : np.ndarray, 
-                             categories_train : np.ndarray, categories_ivs : np.ndarray, categories_name : list[str], path : str, tag : str, override : bool=False, 
-                             use_preds : bool=False, save : bool=True, add_global : bool=True, show : bool=True, **kwargs):
+                             categories_train : np.ndarray, categories_ivs : np.ndarray, categories_name : list[str], path : str, tag : str, 
+                             override : bool=False, use_preds : bool=False, save : bool=True, add_global : bool=True, show : bool=True, 
+                             inputs : np.ndarray=None, inputs_col_names : list[str]=None, output_col_names : list[str]=None, **kwargs):
         """
         Generates IVS results for the given model, training data and IVS.
         Also saves the prediction, truth and categories in a ".npy" file.
@@ -630,6 +698,9 @@ class Model_evaluator():
             save (bool) : wether or not to save the results
             add_global (bool) : whether to add the global metrics (i.e. not separated by category) to the metrics_dict
             show (bool) : whether to show the metrics and plots
+            inputs (numpy.ndarray) : the unscaled X_ivs array
+            inputs_col_names (list[str]) : the physical parameters of the input array
+            output_col_names (list[str]) : the physical parameters of the output array
             **kwargs : additional arguments which will be passed to the model during training
         """
         if add_global: 
@@ -648,18 +719,20 @@ class Model_evaluator():
             else: # overriding, creating the results and predictions
                 print("Training the model...")
                 start = time.time()
-                mdl = model(**kwargs)
+                mdl = model(**kwargs) # TODO si je sauvegarde les inputs, mettre le X_train et X_ivs pas scale en entré de la fonction et les scale ici
                 mdl.fit(X_train, y_train)
                 preds = mdl.predict(X_ivs)
                 end = time.time()
                 print("Evaluating predictions...")
                 for i, output_param in enumerate(self.output_parameters):
-                    self.evaluate_predictions(y_ivs[:, i], preds[:, i], categories, categories_name, output_param, show=show)
+                    self.evaluate_predictions(y_ivs[:, i], preds[:, i], categories, categories_name, output_param, show=show, 
+                                              inputs=inputs, inputs_col_names=inputs_col_names, output_name=output_col_names[i])
                 if save:
                     print("Saving predictions and results...")
                     self.save_numpy_array(preds, path, f"{tag}_predictions.npy")
                     self.save_numpy_array(y_ivs, path, f"{tag}_truths.npy")
                     self.save_numpy_array(categories, path, f"{tag}_categories.npy")
+                    self.save_numpy_array(inputs, path, f"{tag}_inputs.npy")
                     self.save_model_evaluation(tag=tag, time=end-start, train_method="IVS")
         if use_preds: # using the existing predictions
             if override: # overriding, we do not allow this case
@@ -672,9 +745,11 @@ class Model_evaluator():
                 preds = self.load_numpy_array(path, f"{tag}_predictions.npy")
                 truth = self.load_numpy_array(path, f"{tag}_truths.npy")
                 categories = self.load_numpy_array(path, f"{tag}_categories.npy")
+                inputs = self.load_numpy_array(path, f"{tag}_inputs.npy")
                 print("Evaluating predictions...")
                 for i, output_param in enumerate(self.output_parameters):
-                    self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show)
+                    self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show, 
+                                              inputs=inputs, inputs_col_names=inputs_col_names, output_col_names=output_col_names)
                 if save:
                     print("Saving results...")
                     self.save_model_evaluation(tag=tag, train_method="IVS")
@@ -776,7 +851,7 @@ class Model_evaluator():
         Saves the given numpy array to a .npy file.
 
         Parameters:
-            preds (np.ndarray) : predicted values
+            preds (numpy.ndarray) : predicted values
             path (str) : path to the directory in which the numpy array will be saved
             filename (str) : name of the file in which the numpy array will be saved
         """

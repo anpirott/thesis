@@ -206,7 +206,7 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
                                 denominator = eval(max_value) - eval(min_value) # the denominator which will be used to divide the values
 
                                 for key in metrics_dict_copy.keys():
-                                    if key == "Percentiles" and relative_values:
+                                    if key == "Percentiles" and relative_values: # TODO ne round pas avec value_rounding et pas relative_values
                                         str_percentiles = ""
                                         percentiles_dict = eval("{" + f"{metrics_dict_copy[key].replace("/", ",")}" + "}")
                                         for key_percentile in percentiles_dict.keys():
@@ -222,8 +222,15 @@ def compare_metrics(path : str, output_parameters : list[str], model_names : lis
                                         metrics_dict_copy[key] = f"{min_value} - {max_value}"
                                     elif (key == "RVE" or key == "CORR" or key == "time") and value_rounding >= 1:
                                         metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
-                                    elif value_rounding >= 1 and not relative_values and key != "Percentiles":
-                                        metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
+                                    elif value_rounding >= 1 and not relative_values:
+                                        if key != "Percentiles":
+                                            metrics_dict_copy[key] = round(eval(metrics_dict_copy[key]), value_rounding)
+                                        else:
+                                            str_percentiles = ""
+                                            percentiles_dict = eval("{" + f"{metrics_dict_copy[key].replace("/", ",")}" + "}")
+                                            for key_percentile in percentiles_dict.keys():
+                                                str_percentiles += f"{key_percentile} : {round((percentiles_dict[key_percentile]), value_rounding)} / "
+                                            metrics_dict_copy[key] = str_percentiles.removesuffix(" / ")
                                     elif value_rounding < 1 and relative_values and key != "value range" and key != "RVE" and key != "CORR" and key != "time":
                                         metrics_dict_copy[key] = str((eval(metrics_dict_copy[key])/denominator)*100) + "%"
                                     elif value_rounding >= 1 and relative_values and key != "RVE" and key != "CORR" and key != "time":
