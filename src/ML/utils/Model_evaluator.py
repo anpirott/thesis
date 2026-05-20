@@ -371,7 +371,6 @@ class Model_evaluator():
                                 columns=np.round(x_edges[:-1], 2))
 
                 axes_x, axes_y = count//b, count%b
-                print(axes_x, axes_y)
                 sns.heatmap(df, annot=False, fmt=".3f", cmap="RdYlBu_r", linewidths=0.2, linecolor="white", norm=TwoSlopeNorm(vcenter=0), ax=axes[axes_x, axes_y])
                 axes[axes_x, axes_y].set_xlabel(inputs_col_names[i])
                 axes[axes_x, axes_y].set_ylabel(inputs_col_names[j])
