@@ -76,8 +76,8 @@ def interactive_first_method():
     
     print("To quit, press ctrl+C.")
     while True:
-        log_age, metallicity, log_Teff1, log_g1, q = input("Star parameters (age (in Gy), metallicity (in dex), T_eff primary (in K), log_g primary (in cm/s^2), q): ").split(" ")
-        log_age, metallicity, log_Teff1, log_g1, q = float(log_age), float(metallicity), float(log_Teff1), float(log_g1), float(q)
+        age, metallicity, Teff1, log_g1, q = input("Star parameters (age (in Gy), metallicity (in dex), T_eff primary (in K), log_g primary (in log(cm/s^2)), q): ").split(" ")
+        log_age, metallicity, log_Teff1, log_g1, q = math.log(float(age)), float(metallicity), math.log(float(Teff1)), float(log_g1), float(q)
 
         print("Predicting values...")
         # Predict the mass and radius of the primary star
