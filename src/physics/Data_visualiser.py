@@ -25,7 +25,8 @@ class Data_visualiser():
         self.all_metallicities_PARSEC = [-2.75, -2.5, -2.25, -2.0, -1.75, -1.5, -1.25, -1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5]
 
     def plot_isochrone(self, ages : list[float], metallicities : list[float], x_values : str, y_values : str, x_label : str, y_label : str,
-                       iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):
+                       iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None,
+                       x_log : bool=False, y_log : bool=False):
         if iso_df is None:
             iso_df = self.iso_df
         if physical_model is None:
@@ -67,13 +68,16 @@ class Data_visualiser():
             plt.xlim(x_lim[0], x_lim[1])
             if y_lim is not None:
                 plt.ylim(y_lim[0], y_lim[1])
+            if x_log:
+                plt.xscale('log')            
+            if y_log:
+                plt.yscale('log')
             plt.xlabel(x_label)
             plt.ylabel(y_label)
             plt.legend(title="Phases", fontsize="small", 
                     handles = [mlines.Line2D([], [], color=c_dict[key], label=f"{phase_dict[key]}") for key in c_dict.keys()])
             plt.title(f"Metallicity = {metallicity}")
             plt.show()
-    
     
     # TODO? deux fonctions en une avec un paramètre pour savoir si je prends le log_L ou le log_g
     def plot_HR(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):
