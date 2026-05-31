@@ -438,9 +438,9 @@ class Model_evaluator():
         if colorbar_direction == "two_way":
             norm = TwoSlopeNorm(vcenter=0, vmin=vmin, vmax=vmax)
 
-        input_max_err_plotted_heatmap = plt.figure(figsize=(6*b,6*a))
-        gs = input_max_err_plotted_heatmap.add_gridspec(a, b, right=0.88) # space for the colorbar
-        axes = [[input_max_err_plotted_heatmap.add_subplot(gs[row, col]) for col in range(b)] for row in range(a)]
+        plotted_heatmap = plt.figure(figsize=(6*b,6*a))
+        gs = plotted_heatmap.add_gridspec(a, b, right=0.88) # space for the colorbar
+        axes = [[plotted_heatmap.add_subplot(gs[row, col]) for col in range(b)] for row in range(a)]
         axes = np.array(axes)
         for count, index in enumerate(indexes):
             i, j = index
@@ -475,12 +475,14 @@ class Model_evaluator():
             axes[axes_x, axes_y].set_visible(False)
 
         # adding the shared colorbar
-        cbar_ax = input_max_err_plotted_heatmap.add_axes([0.90, 0.15, 0.02, 0.7])
+        cbar_ax = plotted_heatmap.add_axes([0.90, 0.15, 0.02, 0.7])
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])
-        input_max_err_plotted_heatmap.colorbar(sm, cax=cbar_ax, label=colorbar_label)
+        plotted_heatmap.colorbar(sm, cax=cbar_ax, label=colorbar_label)
 
-        return input_max_err_plotted_heatmap
+        plotted_heatmap.subplots_adjust(bottom=0.15, right=0.88)
+
+        return plotted_heatmap
     
     # def _test_fonctionne_pas(self, xlabel : str, ylabel : str, title : str, grid : bool, funcs : list[Callable]) -> plt.Figure:
     #     plot = plt.figure(figsize=(6,6))
