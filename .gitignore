@@ -5,6 +5,8 @@ data/EEP_tracks
 data/PARSEC/PARSEC_iso_full_data.csv
 data/PARSEC/PARSEC_rescaled_iso_full_data.csv
 model/
+results/model_A_partial/final_models/heatmaps/
+results/model_B/final_models/heatmaps/
 __pycache__
 .ipynb_checkpoints/
 notes_données.txt

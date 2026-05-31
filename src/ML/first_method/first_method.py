@@ -92,7 +92,7 @@ def interactive_first_method():
 
 
 if __name__ == "__main__":
-    if sys.argv[1] == "interactif":
+    if sys.argv[1] == "interactive":
         interactive_first_method()
     else:
         age = float(sys.argv[1])

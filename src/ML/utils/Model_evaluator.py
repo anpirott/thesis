@@ -38,7 +38,8 @@ class Model_evaluator():
     def __init__(self, model_name : str, output_parameters : list[str], model : str=None, physical_model : str=None, truth : np.ndarray=None, preds : np.ndarray=None, categories : np.ndarray=None, # TODO? rajouter le temps dans le dict?
                  path : str=None, rve : bool=True, rmse : bool=True, mae : bool=True, medae : bool=True, corr : bool=True, maxe : bool=True, percentile : list[int]=(75, 90, 95, 99), 
                  predicted_truth_plot : bool=True, category_predicted_truth_plot : bool=True, residuals_truth_plot : bool=True, residuals_boxplot : bool=True, residuals_histogram : bool=True, 
-                 category_residuals_histogram : bool=True, qq_plot : bool=True, preds_plot : bool=True, category_preds_plot : bool=True, neg_preds_plot : bool=True, input_err_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
+                 category_residuals_histogram : bool=True, qq_plot : bool=True, preds_plot : bool=True, category_preds_plot : bool=True, neg_preds_plot : bool=True, input_err_plot : bool=True,
+                 input_max_err_plot : bool=True): # TODO rajouter save ici? rajouter path pour ce qu'on sauvegarde?
         """
         Initializes the Model_evaluator class.
 
@@ -81,6 +82,7 @@ class Model_evaluator():
         self.category_preds_plot = category_preds_plot
         self.neg_preds_plot = neg_preds_plot
         self.input_err_plot = input_err_plot
+        self.input_max_err_plot = input_max_err_plot
 
         self.metrics_dict = dict()
         self.plot_dict = dict()
@@ -89,7 +91,7 @@ class Model_evaluator():
     def set_metrics_values(self, all_metrics=None, rve=None, rmse=None, mae=None, medae=None, corr=None, maxe=None, percentile=None,
                     predicted_truth_plot=None, category_predicted_truth_plot=None, residuals_truth_plot=None, residuals_boxplot=None, 
                     residuals_histogram=None, category_residuals_histogram=None, qq_plot=None, preds_plot=None, category_preds_plot=None,
-                    neg_preds_plot=None, input_err_plot=None):
+                    neg_preds_plot=None, input_err_plot=None, input_max_err_plot=None):
         """
         Sets the metrics to be computed/plots to be generated.
 
@@ -116,6 +118,7 @@ class Model_evaluator():
             self.category_preds_plot = all_metrics
             self.neg_preds_plot = all_metrics
             self.input_err_plot = all_metrics
+            self.input_max_err_plot = all_metrics
             return
         
         if rve is not None:
@@ -154,6 +157,8 @@ class Model_evaluator():
             self.neg_preds_plot = neg_preds_plot
         if input_err_plot is not None:
             self.input_err_plot = input_err_plot
+        if input_max_err_plot is not None:
+            self.input_max_err_plot = input_max_err_plot
 
     # TODO décrire tous les plots
 
@@ -352,30 +357,12 @@ class Model_evaluator():
                 plt.title(f'Histogram of negative predictions for {parameter_name}')
                 self.plot_dict[parameter_name]['neg_preds_plot'] = plotted_neg_preds
         if self.input_err_plot and inputs is not None:
-            num_cols = len(inputs[0])
-            indexes = list(combinations(range(0, num_cols), 2)) # getting all the combinations of values of size 2
-
-            a, b = smallest_encompassing_pair(len(indexes)) # number of row, number of columns
-
-            input_err_plotted_heatmap = plt.figure(figsize=(6*b,6*a))
-            axes = input_err_plotted_heatmap.subplots(a, b)
-            for count, index in enumerate(indexes):
-                i, j = index
-                x_values = inputs[:, i]
-                y_values = inputs[:, j]
-
-                result, x_edges, y_edges, _ = binned_statistic_2d(x_values, y_values, residuals, statistic="mean", bins=50)
-                
-                df = pd.DataFrame(result.T,
-                                index=np.round(y_edges[:-1], 2),
-                                columns=np.round(x_edges[:-1], 2))
-
-                axes_x, axes_y = count//b, count%b
-                sns.heatmap(df, annot=False, fmt=".3f", cmap="RdYlBu_r", linewidths=0.2, linecolor="white", norm=TwoSlopeNorm(vcenter=0), ax=axes[axes_x, axes_y])
-                axes[axes_x, axes_y].set_xlabel(inputs_col_names[i])
-                axes[axes_x, axes_y].set_ylabel(inputs_col_names[j])
-                # axes[axes_x, axes_y].set_title(f"Heatmap of the residuals for the {output_name} - mean value per bin")
+            input_err_plotted_heatmap = self._input_error_heatmap(inputs, inputs_col_names, residuals, "mean", "RdYlBu_r", "two_way", "Mean errors")
             self.plot_dict[parameter_name]['input_err_plot'] = input_err_plotted_heatmap
+        
+        if self.input_max_err_plot and inputs is not None:
+            input_max_err_plotted_heatmap = self._input_error_heatmap(inputs, inputs_col_names, residuals, "max", "YlOrRd", "one_way", "Maximum errors")
+            self.plot_dict[parameter_name]['input_max_err_plot'] = input_max_err_plotted_heatmap
         
         return self.metrics_dict[parameter_name], self.plot_dict[parameter_name]
     
@@ -427,6 +414,74 @@ class Model_evaluator():
         
         return copy.deepcopy(sub_metrics_dict)
 
+    def _input_error_heatmap(self, inputs, inputs_col_names, residuals, stat, cmap, colorbar_direction, colorbar_label, num_bins=50):
+        num_cols = len(inputs[0])
+        indexes = list(combinations(range(0, num_cols), 2)) # getting all the combinations of values of size 2
+        
+        if len(indexes) > 3:
+            a, b = smallest_encompassing_pair(len(indexes)) # number of row, number of columns
+        else:
+            a, b = 1, len(indexes)
+
+        # computing all the statistics to have a single colorbar
+        all_results = []
+        for index in indexes:
+            i, j = index
+            result, _, _, _ = binned_statistic_2d(inputs[:, i], inputs[:, j], residuals, statistic=stat, bins=num_bins)
+            all_results.append(result)
+        vmax = np.nanmax([np.nanmax(np.abs(r)) for r in all_results])
+        vmin = -vmax
+
+         # norm for the colorbar
+        if colorbar_direction == "one_way":
+            norm = plt.Normalize(vmin=0, vmax=vmax)
+        if colorbar_direction == "two_way":
+            norm = TwoSlopeNorm(vcenter=0, vmin=vmin, vmax=vmax)
+
+        input_max_err_plotted_heatmap = plt.figure(figsize=(6*b,6*a))
+        gs = input_max_err_plotted_heatmap.add_gridspec(a, b, right=0.88) # space for the colorbar
+        axes = [[input_max_err_plotted_heatmap.add_subplot(gs[row, col]) for col in range(b)] for row in range(a)]
+        axes = np.array(axes)
+        for count, index in enumerate(indexes):
+            i, j = index
+            x_values = inputs[:, i]
+            y_values = inputs[:, j]
+
+            result, x_edges, y_edges, _ = binned_statistic_2d(x_values, y_values, residuals, statistic=stat, bins=num_bins)
+            
+            df = pd.DataFrame(result.T,
+                            index=np.round(y_edges[:-1], 2),
+                            columns=np.round(x_edges[:-1], 2))
+            
+            # have the axis go ascending to the right and the top
+            df = df.sort_index(ascending=False)
+            df = df.sort_index(axis=1, ascending=True)
+
+            axes_x, axes_y = count//b, count%b
+            sns.heatmap(df, annot=False, fmt=".3f", cmap=cmap, linewidths=0.2, linecolor="white", norm=norm, ax=axes[axes_x, axes_y], cbar=False)
+            axes[axes_x, axes_y].set_xlabel(inputs_col_names[i])
+            axes[axes_x, axes_y].set_ylabel(inputs_col_names[j])
+            # axes[axes_x, axes_y].set_title(f"Heatmap of the residuals for the {output_name} - mean value per bin")
+
+            # to reverse the axes when the plot has the same axes as the Kiel diagram
+            reverse_params = {'$\log(T_{\mathrm{eff}})$', '$\log(g)$'}
+            if inputs_col_names[i] in reverse_params and inputs_col_names[j] in reverse_params:
+                axes[axes_x, axes_y].invert_xaxis()
+                axes[axes_x, axes_y].invert_yaxis()
+        
+        # hide unused plots
+        for count in range(len(indexes), a * b):
+            axes_x, axes_y = count // b, count % b
+            axes[axes_x, axes_y].set_visible(False)
+
+        # adding the shared colorbar
+        cbar_ax = input_max_err_plotted_heatmap.add_axes([0.90, 0.15, 0.02, 0.7])
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        input_max_err_plotted_heatmap.colorbar(sm, cax=cbar_ax, label=colorbar_label)
+
+        return input_max_err_plotted_heatmap
+    
     # def _test_fonctionne_pas(self, xlabel : str, ylabel : str, title : str, grid : bool, funcs : list[Callable]) -> plt.Figure:
     #     plot = plt.figure(figsize=(6,6))
     #     for func in funcs:
@@ -741,8 +796,8 @@ class Model_evaluator():
                 inputs = self.load_numpy_array(path, f"{tag}_inputs.npy")
                 print("Evaluating predictions...")
                 for i, output_param in enumerate(self.output_parameters):
-                    self.evaluate_predictions(truth[i], preds[i], categories, categories_name, output_param, show=show, 
-                                              inputs=inputs, inputs_col_names=inputs_col_names, output_col_names=output_col_names)
+                    self.evaluate_predictions(truth[:, i], preds[:, i], categories, categories_name, output_param, show=show, 
+                                              inputs=inputs, inputs_col_names=inputs_col_names, output_name=output_col_names[i])
                 if save:
                     print("Saving results...")
                     self.save_model_evaluation(tag=tag, train_method="IVS")
