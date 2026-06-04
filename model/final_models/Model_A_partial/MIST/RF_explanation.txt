@@ -1,0 +1,2 @@
+The RF model is not present in this folder since it takes too much space.
+You can run the notebook cell about RF in "notebooks\ML\method_ML\Model_A_partial\final_models\MIST\final_model.ipynb"
