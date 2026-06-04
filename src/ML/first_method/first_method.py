@@ -30,6 +30,7 @@ import math
 def first_method(log_age, metallicity, log_Teff, log_g, q, model_A_path, model_B_path):
     """
     First method to compute Teff, log_g and log_R of a secondary star given the log_age, metallicity, T_eff and log_g of the primary star as well as a mass ratio.
+    The parameters are not checked, we expect the user to input parameters whihc are possible.
 
     Parameters:
         log_age (float) : log10 of the age of the system in years
@@ -50,11 +51,11 @@ def first_method(log_age, metallicity, log_Teff, log_g, q, model_A_path, model_B
     # Load the models
     model_A = joblib.load(model_A_path)
     model_B = joblib.load(model_B_path)
-    # TODO dans un deuxième temps, pour les modèles, donner l'erreur associé quand on l'utilise
+    # a model's associated errors depending on the input can be found in the "/results/model_(A_partial|B)/final_models/{model_name}/{output}_input_err_plot" and ".../{output}_input_max_err_plot"
 
     # Predict the mass and radius of the primary star
     star_mass1, log_R1 = model_A.predict([[log_age, metallicity, log_Teff, log_g]]).flatten()
-    star_mass2 = star_mass1 * q # TODO! gros souci si on demande de donner une valeur qui n'est pas possible dans une isochrone
+    star_mass2 = star_mass1 * q
 
     # Predict the effective temperature, surface gravity and radius of the secondary star
     log_Teff2, log_g2, log_R2 = model_B.predict([[log_age, metallicity, star_mass2]]).flatten()
@@ -64,7 +65,8 @@ def first_method(log_age, metallicity, log_Teff, log_g, q, model_A_path, model_B
 def interactive_first_method():
     """
     First method to compute Teff, log_g and log_R of a secondary star given the log_age, metallicity, T_eff and log_g of the primary star as well as a mass ratio.
-    Is interactive through the shell terminal, loads the model once and can predict multiple values one after the other
+    Is interactive through the shell terminal, loads the model once and can predict multiple values one after the other.
+    The parameters are not checked, we expect the user to input parameters whihc are possible.
     """
     model_A_path = "to_change"
     model_B_path = "to_change"
@@ -73,6 +75,7 @@ def interactive_first_method():
     print("Loading models...")
     model_A = joblib.load(model_A_path)
     model_B = joblib.load(model_B_path)
+    # a model's associated errors depending on the input can be found in the "/results/model_(A_partial|B)/final_models/{model_name}/{output}_input_err_plot" and ".../{output}_input_max_err_plot"
     
     print("To quit, press ctrl+C.")
     while True:
@@ -109,35 +112,3 @@ if __name__ == "__main__":
         star_mass1, log_R1, log_Teff2, log_g2, log_R2 = first_method(age, metallicity, log_Teff1, log_g1, q, model_A_path, model_B_path)
         print(f"Primary star parameters : age : {age}, metallicity : {metallicity}, mass : {star_mass1}, log_Teff : {log_Teff1}, log_g : {log_g1}, radius : {log_R1}")
         print(f"Secondary star parameters : age : {age}, metallicity : {metallicity}, mass : {star_mass1*q}, log_Teff : {log_Teff2}, log_g : {log_g2}, radius : {log_R2}")
-
-
-    # faire une version où un prompt avec des input() demande les paramètres mais où on ne load le modèle qu'une seule fois
-
-
-    # from physics.Iso_data_handler import Iso_data_handler
-    # iso_handler = Iso_data_handler("data/MIST_v1.2_vvcrit0.0_basic_isos/", 
-    #                           ['log10_isochrone_age_yr', 'log_Teff', 'log_g', 'star_mass', 'phase', 'metallicity', 'log_R'],
-    #                           "MIST")
-    # test_df = iso_handler.get_isochrone_dataframe(override=False)
-
-    # index = int(sys.argv[1])
-    # q = float(sys.argv[2])
-    # row = test_df.loc[index]
-
-    # print("predicting values...")
-    # star_mass1, log_R1, log_Teff2, log_g2, log_R2 = first_method(row["log10_isochrone_age_yr"], row["metallicity"], row["log_Teff"], row["log_g"], q)
-    # print(f"Primary star mass: {row['star_mass']}, log_Teff: {row['log_Teff']}, log_g: {row['log_g']}, log_R: {row['log_R']}")
-    # print(f"Primary star predicted log_R: {log_R1}")
-    # print(f"Secondary star mass: {row['star_mass'] * q}, log_Teff: {log_Teff2}, log_g: {log_g2}, log_R: {log_R2}")
-
-    # test_sample = test_df.sample(100000)
-    # # print(test_sample)
-    # for index, row in test_sample.iterrows():
-    #     # print(row["log_g"])
-    #     q = random.uniform(0.1, 0.9)
-    #     secondary_star_mass = row["star_mass"] * q
-    #     print(test_df.loc[test_df['star_mass'] == secondary_star_mass])
-    #     print(type(test_df.loc[test_df['star_mass'] == secondary_star_mass]))
-    #     break
-
-    #     log_R1, log_Teff2, log_g2, log_R2 = first_method(row["log10_isochrone_age_yr"], row["metallicity"], row["log_Teff"], row["log_g"], q)
