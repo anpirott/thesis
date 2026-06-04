@@ -1,0 +1,1 @@
+This folder contains all the source code for this thesis. Every file is commented.

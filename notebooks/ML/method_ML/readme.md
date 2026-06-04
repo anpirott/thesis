@@ -1,0 +1,1 @@
+Both folders relates to Model A or B, respectively. You can find inside all the experiments on the machine learning models we performed.
