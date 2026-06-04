@@ -7,7 +7,6 @@ from ML.utils.Data_preparator import Data_preparator
 
 import matplotlib.pyplot as plt
 
-# TODO rajouter les exceptions pour les erreurs
 class Model_trainer():
     """
     Class which contains methods for training machine learning models.

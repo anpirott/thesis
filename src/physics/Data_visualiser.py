@@ -9,6 +9,13 @@ import sys
 # TODO mettre les docstrings
 class Data_visualiser():
     def __init__(self, iso_df : pd.DataFrame, physical_model : str):
+        """
+        Initializes the Data_visualiser class with the isochrone dataframe and the physical model used to generate it.
+
+        Parameters:
+            iso_df (pd.DataFrame): The isochrone dataframe containing the stellar evolution data.
+            physical_model (str): The physical model used to generate the isochrone data. Should be either "MIST" or "PARSEC".
+        """
         self.iso_df = iso_df
         if physical_model == "MIST" or physical_model == "PARSEC":
             self.physical_model = physical_model
@@ -27,6 +34,23 @@ class Data_visualiser():
     def plot_isochrone(self, ages : list[float], metallicities : list[float], x_values : str, y_values : str, x_label : str, y_label : str,
                        iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None,
                        x_log : bool=False, y_log : bool=False):
+        """
+        Plots the isochrones for the given ages and metallicities, using the specified x and y values for the axes. The plot is colored according to the different evolutionary phases of the stars.
+
+        Parameters:
+            ages (list[float]): A list of ages (in log years) for which to plot the isochrones. If empty, all ages in the dataframe will be plotted.
+            metallicities (list[float]): A list of metallicities for which to plot the isochrones. If empty, all metallicities in the dataframe will be plotted.
+            x_values (str): The column name in the dataframe to use for the x-axis values
+            y_values (str): The column name in the dataframe to use for the y-axis values
+            x_label (str): The label for the x-axis
+            y_label (str): The label for the y-axis
+            iso_df (pd.DataFrame, optional): The isochrone dataframe to use for plotting. If None, the dataframe provided during initialization will be used.
+            physical_model (str, optional): The physical model to use for plotting. Should be either "MIST" or "PARSEC". If None, the model provided during initialization will be used.
+            x_lim (tuple[float], optional): The limits for the x-axis. If None, the limits get preset values if not provided.
+            y_lim (tuple[float], optional): The limits for the y-axis. If None, the limits get preset values if not provided.
+            x_log (bool, optional): Whether to use a logarithmic scale for the x-axis. Default is False.
+            y_log (bool, optional): Whether to use a logarithmic scale for the y-axis. Default is False.
+        """
         if iso_df is None:
             iso_df = self.iso_df
         if physical_model is None:
@@ -81,6 +105,17 @@ class Data_visualiser():
     
     # TODO? deux fonctions en une avec un paramètre pour savoir si je prends le log_L ou le log_g
     def plot_HR(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):
+        """
+        Plots the HR diagram for the given ages and metallicities, using log_Teff for the x-axis and log_L for the y-axis. The plot is colored according to the different evolutionary phases of the stars.
+
+        Parameters:
+            ages (list[float]): A list of ages (in log years) for which to plot the isochrones. If empty, all ages in the dataframe will be plotted.
+            metallicities (list[float]): A list of metallicities for which to plot the isochrones. If empty, all metallicities in the dataframe will be plotted.
+            iso_df (pd.DataFrame, optional): The isochrone dataframe to use for plotting. If None, the dataframe provided during initialization will be used.
+            physical_model (str, optional): The physical model to use for plotting. Should be either "MIST" or "PARSEC". If None, the model provided during initialization will be used.
+            x_lim (tuple[float], optional): The limits for the x-axis. If None, the limits get preset values if not provided.
+            y_lim (tuple[float], optional): The limits for the y-axis. If None, the limits get preset values if not provided.
+        """
         if iso_df is None:
             iso_df = self.iso_df
         if physical_model is None:
@@ -133,6 +168,17 @@ class Data_visualiser():
             plt.show()
 
     def plot_Kiel(self, ages : list[float], metallicities : list[float], iso_df : pd.DataFrame=None, physical_model : str=None, x_lim : tuple[float]=None, y_lim : tuple[float]=None):
+        """
+        Plots the Kiel diagram for the given ages and metallicities, using log_Teff for the x-axis and log_L for the y-axis. The plot is colored according to the different evolutionary phases of the stars.
+
+        Parameters:
+            ages (list[float]): A list of ages (in log years) for which to plot the isochrones. If empty, all ages in the dataframe will be plotted.
+            metallicities (list[float]): A list of metallicities for which to plot the isochrones. If empty, all metallicities in the dataframe will be plotted.
+            iso_df (pd.DataFrame, optional): The isochrone dataframe to use for plotting. If None, the dataframe provided during initialization will be used.
+            physical_model (str, optional): The physical model to use for plotting. Should be either "MIST" or "PARSEC". If None, the model provided during initialization will be used.
+            x_lim (tuple[float], optional): The limits for the x-axis. If None, the limits get preset values if not provided.
+            y_lim (tuple[float], optional): The limits for the y-axis. If None, the limits get preset values if not provided.
+        """
         if iso_df is None:
             iso_df = self.iso_df
         if physical_model is None:
@@ -183,6 +229,12 @@ class Data_visualiser():
             plt.show()
 
     def show_distribution(self, col_names : list[str]):
+        """
+        Plots the distribution of the values in the specified columns as histograms.
+
+        Parameters:
+            col_names (list[str]): A list of column names in the dataframe for which to plot the distributions.
+        """
         for cols in col_names:
             distribution_plot = plt.figure(figsize=(6,6))
             plt.hist(self.iso_df[cols], bins=60)

@@ -415,6 +415,9 @@ class Model_evaluator():
         return copy.deepcopy(sub_metrics_dict)
 
     def _input_error_heatmap(self, inputs, inputs_col_names, residuals, stat, cmap, colorbar_direction, colorbar_label, num_bins=50):
+        """
+        Sub-function of the calculate_model_evaluation() function to create the heatmaps.
+        """
         num_cols = len(inputs[0])
         indexes = list(combinations(range(0, num_cols), 2)) # getting all the combinations of values of size 2
         
@@ -611,23 +614,6 @@ class Model_evaluator():
                         plot_dict[param][plot_name][cat_plot].savefig(plot_path + f"{parameter_name}_{plot_name}_{cat_plot}.png")
                 else:
                     plot_dict[parameter_name][plot_name].savefig(plot_path + f"{parameter_name}_{plot_name}.png")
-
-    # TODO! ne fonctionne pas, pas encore fini
-    def evaluate_model(self, model, X_test : np.ndarray, y_test : np.ndarray):
-        """
-        not implemented
-        Evaluates the given model on the test data and prints the metrics.
-
-        Parameters:
-            model : trained machine learning model
-            X_test (numpy.ndarray) : dataset of the test features
-            y_test (numpy.ndarray) : dataset of the test targets
-        """
-        # y_pred = model.predict(X_test)
-        # for i, col in enumerate(y_test.columns):
-        #     self.calculate_model_evaluation(col, y_test[col].values, y_pred[:, i])
-        #     self.show_model_evaluation(col)
-        pass
     
     def evaluate_predictions(self, truth : np.ndarray, preds : np.ndarray, categories : np.ndarray, categories_name : list[str], parameter_name : str, show : bool=True, 
                              inputs : np.ndarray=None, inputs_col_names : list[str]=None, output_name : str=None):
@@ -804,8 +790,7 @@ class Model_evaluator():
                     print("Saving results...")
                     self.save_model_evaluation(tag=tag, train_method="IVS")
         return
-
-    
+ 
     def check_existing_results(self, tag : str, model_name : str=None, path : str=None, physical_model : str=None) -> bool:
         """
         Checks if the results for the given tag already exist.
