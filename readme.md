@@ -8,7 +8,7 @@ To use the method developed in the thesis (see image below), you need to run the
 
 More explanation on how to use the method can be found in the file itself.
 
-![alt text](img\mes_images\diagramme_2_ML.png)
+![alt text](https://github.com/anpirott/thesis/blob/master/img/mes_images/diagramme_2_ML.png?raw=True)
 
 ## Folders description
 
