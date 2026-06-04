@@ -8,6 +8,8 @@ results/model_A_partial/final_models/heatmaps/
 results/model_B/final_models/heatmaps/
 model/*/*/*/RF*.pkl
 model/*/*/*/RF*.zip
+img/test_gif/
+img/unused/
 __pycache__
 .ipynb_checkpoints/
 notes_données.txt
