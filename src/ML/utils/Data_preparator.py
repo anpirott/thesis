@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import sys
+import joblib
 
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
@@ -59,12 +60,13 @@ class Data_preparator():
         return data_dff
     
     @staticmethod
-    def scale_data(X_train : np.ndarray, X_test : np.ndarray, scaler_name : str) -> tuple[np.ndarray, np.ndarray]:
+    def scale_data(X_train : np.ndarray, X_test : np.ndarray, scaler_name : str, path_name : str=None) -> tuple[np.ndarray, np.ndarray]:
         """
         Scales the given dataframe according to the given scaler name.
         Parameters:
             data_df (numpy.ndarray) : dataframe to be scaled
             scaler_name (str) : name of the scaler to be used. Can be "power", "quantile", "robust" or "standard"
+            path_name (str) : path in which the scaler needs to be saved, does not save when set to None
         Returns:
             pandas.DataFrame : a pandas dataframe containing the scaled data
         """
@@ -82,6 +84,9 @@ class Data_preparator():
         
         X_train_scaled = scaler.fit_transform(X_train)
         X_test_scaled  = scaler.transform(X_test)
+
+        if path_name:
+            joblib.dump(scaler, path_name + f'{scaler_name}_scaler.pkl')
         return X_train_scaled, X_test_scaled
 
     @staticmethod
